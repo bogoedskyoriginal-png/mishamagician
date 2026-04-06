@@ -97,6 +97,17 @@ app.get('/setItems', (req, res) => {
   });
 });
 
+// Сброс команды — зритель возвращается в ожидание
+app.get('/reset', (req, res) => {
+  lastItem = null;
+  fs.writeFile(DATA_FILE, '', (err) => {
+    if (err) {
+      return res.json({ ok: true, saved: false });
+    }
+    return res.json({ ok: true, saved: true });
+  });
+});
+
 // Отдаём текущий предмет для зрителя
 app.get('/getItem', (req, res) => {
   res.json({ item: lastItem });
