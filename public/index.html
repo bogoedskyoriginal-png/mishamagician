@@ -1,0 +1,109 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#000000" />
+  <title>Магическое предсказание</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='black'/%3E%3Ctext x='50%25' y='58%25' font-size='140' text-anchor='middle' fill='white' font-family='Arial'%3EM%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='black'/%3E%3Ctext x='50%25' y='58%25' font-size='140' text-anchor='middle' fill='white' font-family='Arial'%3EM%3C/text%3E%3C/svg%3E" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .wrap {
+      padding: 24px;
+    }
+    .status {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .error {
+      font-size: 14px;
+      color: #ffb3b3;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="status">Ожидание предсказания...</div>
+    <div id="error" class="error"></div>
+  </div>
+
+  <script>
+    // Список предметов по умолчанию
+    let items = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
+
+    const errorEl = document.getElementById('error');
+    let redirected = false;
+
+    function redirectToItem(index) {
+      if (redirected) return;
+      redirected = true;
+
+      const name = items[index] || items[0];
+      const url = `https://www.google.com/search?q=${encodeURIComponent(name)}&tbm=isch`;
+
+      // Важно: replace, чтобы нельзя было вернуться назад
+      window.location.replace(url);
+    }
+
+    async function loadItems() {
+      try {
+        const res = await fetch('/getItems', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Не удалось получить список');
+        const data = await res.json();
+        if (Array.isArray(data.items) && data.items.length === 5) {
+          items = data.items.map((v, i) => String(v || items[i]));
+        }
+      } catch (err) {
+        // Ошибка сети — остаёмся на дефолтном списке
+      }
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch('/getItem', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Сервер недоступен');
+        const data = await res.json();
+
+        if (typeof data.item === 'number' && data.item >= 1 && data.item <= 5) {
+          const index = data.item - 1;
+          clearInterval(pollTimer);
+          clearTimeout(timeoutTimer);
+          redirectToItem(index);
+        }
+        errorEl.textContent = '';
+      } catch (err) {
+        // Ошибка сети — просто показываем текст, но продолжаем опрос
+        errorEl.textContent = 'Проблема с сетью, продолжаю ждать...';
+      }
+    }
+
+    // Опрос каждые 500 мс
+    const pollTimer = setInterval(poll, 500);
+
+    // Таймаут 30 секунд — уходим на первый предмет
+    const timeoutTimer = setTimeout(() => {
+      clearInterval(pollTimer);
+      redirectToItem(0);
+    }, 30000);
+
+    // Первый вызов сразу, чтобы не ждать 500 мс
+    loadItems().then(poll);
+  </script>
+</body>
+</html>

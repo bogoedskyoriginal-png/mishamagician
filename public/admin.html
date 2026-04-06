@@ -1,0 +1,277 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ-панель</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1b1f2a;
+      --accent: #4dd4ff;
+      --text: #ffffff;
+      --muted: #9aa4b2;
+      --danger: #ff8a8a;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 12px 0;
+    }
+
+    .inputs {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .inputs input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: var(--card);
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    .pad {
+      width: 100%;
+      height: 220px;
+      border-radius: 14px;
+      background: #121826;
+      border: 2px dashed #2c3342;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 16px;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .pad.armed {
+      border-color: var(--accent);
+      background: #0d2030;
+    }
+
+    .notice {
+      margin-top: 12px;
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .items-list {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .items-list b {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <h1>Админ-панель</h1>
+  <div class="inputs" id="inputs"></div>
+
+  <div class="pad" id="pad">Зажмите область на 3 секунды, затем тапните 1–5 раз</div>
+  <div class="notice" id="notice"></div>
+  <div class="items-list" id="itemsList"></div>
+
+  <script>
+    const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
+    const STORAGE_KEY = 'magic-items';
+
+    const inputsEl = document.getElementById('inputs');
+    const padEl = document.getElementById('pad');
+    const noticeEl = document.getElementById('notice');
+    const itemsListEl = document.getElementById('itemsList');
+
+    function loadLocalItems() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 5) return parsed;
+      } catch (err) {
+        // Если данные битые — используем дефолт
+      }
+      return null;
+    }
+
+    function saveLocalItems(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    async function fetchServerItems() {
+      try {
+        const res = await fetch('/getItems', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Ошибка сервера');
+        const data = await res.json();
+        if (Array.isArray(data.items) && data.items.length === 5) return data.items;
+      } catch (err) {
+        // Игнорируем
+      }
+      return null;
+    }
+
+    let saveTimer = null;
+    function syncItemsToServer(items) {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        try {
+          const params = new URLSearchParams({
+            i1: items[0],
+            i2: items[1],
+            i3: items[2],
+            i4: items[3],
+            i5: items[4],
+          });
+          await fetch(`/setItems?${params.toString()}`);
+        } catch (err) {
+          // Если сеть упала — не критично
+        }
+      }, 400);
+    }
+
+    function renderItems(items) {
+      inputsEl.innerHTML = '';
+
+      items.forEach((name, index) => {
+        const input = document.createElement('input');
+        input.value = name;
+        input.placeholder = `Предмет ${index + 1}`;
+        input.addEventListener('input', () => {
+          items[index] = input.value.trim() || DEFAULT_ITEMS[index];
+          saveLocalItems(items);
+          syncItemsToServer(items);
+          updateItemsList(items);
+        });
+        inputsEl.appendChild(input);
+      });
+
+      updateItemsList(items);
+    }
+
+    function updateItemsList(items) {
+      itemsListEl.innerHTML = `1: <b>${items[0]}</b> · 2: <b>${items[1]}</b> · 3: <b>${items[2]}</b> · 4: <b>${items[3]}</b> · 5: <b>${items[4]}</b>`;
+    }
+
+    let noticeTimer = null;
+    function showNotice(text) {
+      noticeEl.textContent = text;
+      if (noticeTimer) clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => {
+        noticeEl.textContent = '';
+      }, 1500);
+    }
+
+    // Логика ввода тапами
+    const HOLD_MS = 3000;
+    const TAP_GAP_MS = 700;
+    const ARM_TIMEOUT_MS = 6000;
+
+    let armed = false;
+    let holdTimer = null;
+    let tapTimer = null;
+    let armTimeout = null;
+    let tapCount = 0;
+    let ignoreNextTap = false;
+
+    function armPad() {
+      armed = true;
+      tapCount = 0;
+      ignoreNextTap = true;
+      padEl.classList.add('armed');
+      showNotice('Готов. Тапните 1–5 раз');
+
+      if (armTimeout) clearTimeout(armTimeout);
+      armTimeout = setTimeout(() => {
+        disarmPad('Время ввода истекло');
+      }, ARM_TIMEOUT_MS);
+    }
+
+    function disarmPad(msg) {
+      armed = false;
+      tapCount = 0;
+      padEl.classList.remove('armed');
+      if (tapTimer) clearTimeout(tapTimer);
+      if (armTimeout) clearTimeout(armTimeout);
+      if (msg) showNotice(msg);
+    }
+
+    async function sendCommand(count) {
+      try {
+        const res = await fetch(`/command?item=${count}`);
+        if (!res.ok) throw new Error('Ошибка сервера');
+        showNotice(`Отправлено: ${count}`);
+      } catch (err) {
+        showNotice('Ошибка отправки');
+      }
+    }
+
+    function finalizeTaps() {
+      if (!armed) return;
+      const count = Math.max(1, Math.min(5, tapCount));
+      disarmPad();
+      sendCommand(count);
+    }
+
+    padEl.addEventListener('pointerdown', () => {
+      if (armed) return;
+      holdTimer = setTimeout(armPad, HOLD_MS);
+    });
+
+    padEl.addEventListener('pointerup', () => {
+      if (holdTimer) clearTimeout(holdTimer);
+    });
+
+    padEl.addEventListener('pointerleave', () => {
+      if (holdTimer) clearTimeout(holdTimer);
+    });
+
+    padEl.addEventListener('click', () => {
+      if (!armed) return;
+      if (ignoreNextTap) {
+        ignoreNextTap = false;
+        return;
+      }
+
+      tapCount += 1;
+      if (tapCount > 5) tapCount = 5;
+      showNotice(`Тапов: ${tapCount}`);
+
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(finalizeTaps, TAP_GAP_MS);
+    });
+
+    // Инициализация
+    (async () => {
+      const local = loadLocalItems();
+      const server = await fetchServerItems();
+
+      let items = DEFAULT_ITEMS;
+      if (local) {
+        items = local;
+        syncItemsToServer(items);
+      } else if (server) {
+        items = server;
+        saveLocalItems(items);
+      }
+
+      renderItems([...items]);
+    })();
+  </script>
+</body>
+</html>
