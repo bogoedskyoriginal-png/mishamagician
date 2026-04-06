@@ -12,7 +12,6 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
 
 // Простое хранение сессий в памяти (для теста)
-const userSessions = new Map(); // token -> userId
 const masterSessions = new Set(); // token
 
 app.use(express.json());
@@ -42,8 +41,6 @@ function loadUsers() {
         default: {
           viewerSlug: 'default',
           adminSlug: 'default',
-          adminUser: 'admin',
-          adminPass: 'admin123',
           items: [...DEFAULT_ITEMS],
           lastItem: null,
         },
@@ -82,11 +79,6 @@ function getUserIdByAdminSlug(slug) {
   return entry ? entry[0] : null;
 }
 
-function getUserIdByViewerSlug(slug) {
-  const entry = Object.entries(store.users).find(([, u]) => u.viewerSlug === slug);
-  return entry ? entry[0] : null;
-}
-
 function isValidSlug(s) {
   return typeof s === 'string' && /^[a-zA-Z0-9_-]{3,32}$/.test(s);
 }
@@ -101,17 +93,6 @@ function parseCookies(req) {
     out[p.slice(0, i)] = decodeURIComponent(p.slice(i + 1));
   }
   return out;
-}
-
-function requireUserAuth(req, res, next) {
-  const cookies = parseCookies(req);
-  const token = cookies.user_auth;
-  const adminSlug = req.params.adminSlug;
-  const userId = getUserIdByAdminSlug(adminSlug);
-  if (!token || !userId) return res.status(401).json({ ok: false });
-  const mapped = userSessions.get(token);
-  if (mapped !== userId) return res.status(401).json({ ok: false });
-  next();
 }
 
 function requireMasterAuth(req, res, next) {
@@ -153,26 +134,12 @@ app.get('/api/u/:viewerSlug/getItems', (req, res) => {
   res.json({ items: user ? user.items : DEFAULT_ITEMS });
 });
 
-// ===== API: admin =====
-app.post('/api/a/:adminSlug/login', (req, res) => {
-  const user = getUserByAdminSlug(req.params.adminSlug);
-  if (!user) return res.status(404).json({ ok: false });
-
-  const { username, password } = req.body || {};
-  if (username !== user.adminUser || password !== user.adminPass) {
-    return res.status(401).json({ ok: false });
-  }
-
-  const token = issueToken();
-  const userId = getUserIdByAdminSlug(req.params.adminSlug);
-  userSessions.set(token, userId);
-  res.setHeader('Set-Cookie', `user_auth=${token}; Path=/; HttpOnly`);
-  res.json({ ok: true });
-});
-
-app.post('/api/a/:adminSlug/command', requireUserAuth, (req, res) => {
+// ===== API: admin (доступ по секретной ссылке /a/SLUG) =====
+app.post('/api/a/:adminSlug/command', (req, res) => {
   const userId = getUserIdByAdminSlug(req.params.adminSlug);
   const user = store.users[userId];
+  if (!user) return res.status(404).json({ ok: false });
+
   const item = Number(req.body && req.body.item);
   if (!Number.isInteger(item) || item < 1 || item > 5) {
     return res.status(400).json({ ok: false, error: 'item должен быть от 1 до 5' });
@@ -182,23 +149,29 @@ app.post('/api/a/:adminSlug/command', requireUserAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/a/:adminSlug/reset', requireUserAuth, (req, res) => {
+app.post('/api/a/:adminSlug/reset', (req, res) => {
   const userId = getUserIdByAdminSlug(req.params.adminSlug);
   const user = store.users[userId];
+  if (!user) return res.status(404).json({ ok: false });
+
   user.lastItem = null;
   saveUsers(store);
   res.json({ ok: true });
 });
 
-app.get('/api/a/:adminSlug/getItems', requireUserAuth, (req, res) => {
+app.get('/api/a/:adminSlug/getItems', (req, res) => {
   const userId = getUserIdByAdminSlug(req.params.adminSlug);
   const user = store.users[userId];
+  if (!user) return res.status(404).json({ ok: false });
+
   res.json({ items: user.items });
 });
 
-app.post('/api/a/:adminSlug/setItems', requireUserAuth, (req, res) => {
+app.post('/api/a/:adminSlug/setItems', (req, res) => {
   const userId = getUserIdByAdminSlug(req.params.adminSlug);
   const user = store.users[userId];
+  if (!user) return res.status(404).json({ ok: false });
+
   const next = req.body && req.body.items;
   if (!Array.isArray(next) || next.length !== 5) {
     return res.status(400).json({ ok: false, error: 'Нужно 5 предметов' });
@@ -225,20 +198,16 @@ app.get('/api/master/list-users', requireMasterAuth, (req, res) => {
     id,
     viewerSlug: u.viewerSlug,
     adminSlug: u.adminSlug,
-    adminUser: u.adminUser,
     items: u.items,
   }));
   res.json({ ok: true, users: list });
 });
 
 app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
-  const { viewerSlug, adminSlug, adminUser, adminPass, items } = req.body || {};
+  const { viewerSlug, adminSlug } = req.body || {};
 
   if (!isValidSlug(viewerSlug) || !isValidSlug(adminSlug)) {
     return res.status(400).json({ ok: false, error: 'Некорректный slug' });
-  }
-  if (!adminUser || !adminPass) {
-    return res.status(400).json({ ok: false, error: 'Нужны логин и пароль' });
   }
 
   if (getUserByViewerSlug(viewerSlug) || getUserByAdminSlug(adminSlug)) {
@@ -249,9 +218,7 @@ app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
   store.users[userId] = {
     viewerSlug,
     adminSlug,
-    adminUser,
-    adminPass,
-    items: Array.isArray(items) && items.length === 5 ? items : [...DEFAULT_ITEMS],
+    items: [...DEFAULT_ITEMS],
     lastItem: null,
   };
 

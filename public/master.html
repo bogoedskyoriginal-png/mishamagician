@@ -23,6 +23,24 @@
       margin: 0 0 12px 0;
       font-size: 22px;
     }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: #121826;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .tab.active {
+      background: #0d2030;
+      border-color: #3b4a66;
+    }
     .card {
       background: var(--card);
       border: 1px solid #2c3342;
@@ -71,6 +89,11 @@
 <body>
   <h1>Главная админка</h1>
 
+  <div class="tabs" id="tabs" style="display:none;">
+    <button class="tab active" id="tabUsers">Пользователи</button>
+    <button class="tab" id="tabCreate">Создать</button>
+  </div>
+
   <div class="card" id="loginCard">
     <div class="row"><input id="loginUser" placeholder="Логин" /></div>
     <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
@@ -78,26 +101,27 @@
     <div class="error" id="loginError"></div>
   </div>
 
+  <div class="card" id="listCard" style="display:none;">
+    <h2>Список пользователей</h2>
+    <div id="users"></div>
+  </div>
+
   <div class="card" id="createCard" style="display:none;">
     <h2>Создать пользователя</h2>
     <div class="muted">Slug: только латиница, цифры, -, _ (3–32 символа)</div>
     <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
     <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
-    <input id="adminUser" placeholder="Логин администратора" />
-    <input id="adminPass" type="password" placeholder="Пароль администратора" />
     <button id="createBtn">Создать</button>
     <div class="error" id="createError"></div>
-  </div>
-
-  <div class="card" id="listCard" style="display:none;">
-    <h2>Список пользователей</h2>
-    <div id="users"></div>
   </div>
 
   <script>
     const loginCard = document.getElementById('loginCard');
     const createCard = document.getElementById('createCard');
     const listCard = document.getElementById('listCard');
+    const tabsEl = document.getElementById('tabs');
+    const tabUsers = document.getElementById('tabUsers');
+    const tabCreate = document.getElementById('tabCreate');
 
     const loginUser = document.getElementById('loginUser');
     const loginPass = document.getElementById('loginPass');
@@ -106,8 +130,6 @@
 
     const viewerSlug = document.getElementById('viewerSlug');
     const adminSlug = document.getElementById('adminSlug');
-    const adminUser = document.getElementById('adminUser');
-    const adminPass = document.getElementById('adminPass');
     const createBtn = document.getElementById('createBtn');
     const createError = document.getElementById('createError');
 
@@ -115,8 +137,25 @@
 
     function showPanels() {
       loginCard.style.display = 'none';
-      createCard.style.display = 'block';
+      tabsEl.style.display = 'flex';
       listCard.style.display = 'block';
+      createCard.style.display = 'none';
+      tabUsers.classList.add('active');
+      tabCreate.classList.remove('active');
+    }
+
+    function switchToCreate() {
+      listCard.style.display = 'none';
+      createCard.style.display = 'block';
+      tabUsers.classList.remove('active');
+      tabCreate.classList.add('active');
+    }
+
+    function switchToUsers() {
+      listCard.style.display = 'block';
+      createCard.style.display = 'none';
+      tabUsers.classList.add('active');
+      tabCreate.classList.remove('active');
     }
 
     async function loadUsers() {
@@ -134,7 +173,6 @@
           <div><b>${u.id}</b></div>
           <div class="muted">Viewer: ${origin}/u/${u.viewerSlug}</div>
           <div class="muted">Admin: ${origin}/a/${u.adminSlug}</div>
-          <div class="muted">Admin user: ${u.adminUser}</div>
         `;
         usersEl.appendChild(div);
       });
@@ -165,9 +203,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           viewerSlug: viewerSlug.value.trim(),
-          adminSlug: adminSlug.value.trim(),
-          adminUser: adminUser.value.trim(),
-          adminPass: adminPass.value
+          adminSlug: adminSlug.value.trim()
         })
       });
       const data = await res.json();
@@ -177,8 +213,7 @@
       }
       viewerSlug.value = '';
       adminSlug.value = '';
-      adminUser.value = '';
-      adminPass.value = '';
+      switchToUsers();
       await loadUsers();
     }
 
@@ -188,6 +223,17 @@
     });
 
     createBtn.addEventListener('click', createUser);
+    tabCreate.addEventListener('click', switchToCreate);
+    tabUsers.addEventListener('click', switchToUsers);
+
+    // Пробуем авто-вход по cookie
+    (async () => {
+      const res = await fetch('/api/master/list-users');
+      if (res.ok) {
+        showPanels();
+        await loadUsers();
+      }
+    })();
   </script>
 </body>
 </html>
