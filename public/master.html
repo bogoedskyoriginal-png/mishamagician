@@ -1,0 +1,193 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Главная админка</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1b1f2a;
+      --accent: #4dd4ff;
+      --text: #ffffff;
+      --muted: #9aa4b2;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      padding: 16px;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 22px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #2c3342;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: #121826;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: #0d2030;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .row {
+      margin-bottom: 8px;
+    }
+    .user {
+      border-top: 1px solid #2c3342;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .error {
+      color: #ffb3b3;
+      font-size: 12px;
+      min-height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Главная админка</h1>
+
+  <div class="card" id="loginCard">
+    <div class="row"><input id="loginUser" placeholder="Логин" /></div>
+    <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
+    <button id="loginBtn">Войти</button>
+    <div class="error" id="loginError"></div>
+  </div>
+
+  <div class="card" id="createCard" style="display:none;">
+    <h2>Создать пользователя</h2>
+    <div class="muted">Slug: только латиница, цифры, -, _ (3–32 символа)</div>
+    <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
+    <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
+    <input id="adminUser" placeholder="Логин администратора" />
+    <input id="adminPass" type="password" placeholder="Пароль администратора" />
+    <button id="createBtn">Создать</button>
+    <div class="error" id="createError"></div>
+  </div>
+
+  <div class="card" id="listCard" style="display:none;">
+    <h2>Список пользователей</h2>
+    <div id="users"></div>
+  </div>
+
+  <script>
+    const loginCard = document.getElementById('loginCard');
+    const createCard = document.getElementById('createCard');
+    const listCard = document.getElementById('listCard');
+
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+
+    const viewerSlug = document.getElementById('viewerSlug');
+    const adminSlug = document.getElementById('adminSlug');
+    const adminUser = document.getElementById('adminUser');
+    const adminPass = document.getElementById('adminPass');
+    const createBtn = document.getElementById('createBtn');
+    const createError = document.getElementById('createError');
+
+    const usersEl = document.getElementById('users');
+
+    function showPanels() {
+      loginCard.style.display = 'none';
+      createCard.style.display = 'block';
+      listCard.style.display = 'block';
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/api/master/list-users');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.ok) return;
+
+      usersEl.innerHTML = '';
+      const origin = window.location.origin;
+      data.users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user';
+        div.innerHTML = `
+          <div><b>${u.id}</b></div>
+          <div class="muted">Viewer: ${origin}/u/${u.viewerSlug}</div>
+          <div class="muted">Admin: ${origin}/a/${u.adminSlug}</div>
+          <div class="muted">Admin user: ${u.adminUser}</div>
+        `;
+        usersEl.appendChild(div);
+      });
+    }
+
+    async function doLogin() {
+      loginError.textContent = '';
+      const res = await fetch('/api/master/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: loginUser.value.trim(),
+          password: loginPass.value
+        })
+      });
+      if (!res.ok) {
+        loginError.textContent = 'Неверный логин или пароль';
+        return;
+      }
+      showPanels();
+      await loadUsers();
+    }
+
+    async function createUser() {
+      createError.textContent = '';
+      const res = await fetch('/api/master/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          viewerSlug: viewerSlug.value.trim(),
+          adminSlug: adminSlug.value.trim(),
+          adminUser: adminUser.value.trim(),
+          adminPass: adminPass.value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        createError.textContent = (data && data.error) ? data.error : 'Ошибка';
+        return;
+      }
+      viewerSlug.value = '';
+      adminSlug.value = '';
+      adminUser.value = '';
+      adminPass.value = '';
+      await loadUsers();
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    loginPass.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    createBtn.addEventListener('click', createUser);
+  </script>
+</body>
+</html>

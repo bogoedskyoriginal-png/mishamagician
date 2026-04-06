@@ -134,6 +134,59 @@
       color: var(--text);
       font-size: 16px;
     }
+
+    .login {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 12, 0.96);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 320px;
+      background: var(--card);
+      border: 1px solid #2c3342;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .login-box h2 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: #121826;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #2c3342;
+      background: #0d2030;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .login-error {
+      margin-top: 8px;
+      color: #ffb3b3;
+      font-size: 12px;
+      min-height: 14px;
+    }
   </style>
 </head>
 <body>
@@ -149,6 +202,16 @@
     <div class="items-list" id="itemsList"></div>
   </div>
 
+  <div class="login" id="login">
+    <div class="login-box">
+      <h2>Вход администратора</h2>
+      <input id="loginUser" placeholder="Логин" />
+      <input id="loginPass" type="password" placeholder="Пароль" />
+      <button id="loginBtn">Войти</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
   <script>
     const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
     const STORAGE_KEY = 'magic-items';
@@ -161,6 +224,23 @@
     const settingsBtn = document.getElementById('settingsBtn');
     const closeBtn = document.getElementById('closeBtn');
     const resetBtn = document.getElementById('resetBtn');
+
+    const loginEl = document.getElementById('login');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginError = document.getElementById('loginError');
+
+    function getAdminSlug() {
+      const path = window.location.pathname;
+      if (path.startsWith('/a/')) {
+        const parts = path.split('/').filter(Boolean);
+        return parts[1] || 'default';
+      }
+      return 'default';
+    }
+
+    const adminSlug = getAdminSlug();
 
     function loadLocalItems() {
       try {
@@ -179,7 +259,7 @@
 
     async function fetchServerItems() {
       try {
-        const res = await fetch('/getItems', { cache: 'no-store' });
+        const res = await fetch(`/api/a/${adminSlug}/getItems`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Ошибка сервера');
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length === 5) return data.items;
@@ -194,14 +274,11 @@
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(async () => {
         try {
-          const params = new URLSearchParams({
-            i1: items[0],
-            i2: items[1],
-            i3: items[2],
-            i4: items[3],
-            i5: items[4],
+          await fetch(`/api/a/${adminSlug}/setItems`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items })
           });
-          await fetch(`/setItems?${params.toString()}`);
         } catch (err) {
           // Если сеть упала — не критично
         }
@@ -276,7 +353,11 @@
 
     async function sendCommand(count) {
       try {
-        const res = await fetch(`/command?item=${count}`);
+        const res = await fetch(`/api/a/${adminSlug}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item: count })
+        });
         if (!res.ok) throw new Error('Ошибка сервера');
         showNotice(`Отправлено: ${count}`);
       } catch (err) {
@@ -333,7 +414,7 @@
 
     resetBtn.addEventListener('click', async () => {
       try {
-        const res = await fetch('/reset');
+        const res = await fetch(`/api/a/${adminSlug}/reset`, { method: 'POST' });
         if (!res.ok) throw new Error('Ошибка сервера');
         showNotice('Сброс выполнен');
       } catch (err) {
@@ -341,21 +422,54 @@
       }
     });
 
-    // Инициализация
-    (async () => {
+    async function doLogin() {
+      loginError.textContent = '';
+      try {
+        const res = await fetch(`/api/a/${adminSlug}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: loginUser.value.trim(),
+            password: loginPass.value
+          })
+        });
+        if (!res.ok) throw new Error('Неверный логин или пароль');
+        loginEl.style.display = 'none';
+        showNotice('Вход выполнен');
+        await initItems();
+      } catch (err) {
+        loginError.textContent = 'Неверный логин или пароль';
+      }
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    loginPass.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    async function initItems() {
       const local = loadLocalItems();
       const server = await fetchServerItems();
 
       let items = DEFAULT_ITEMS;
-      if (local) {
-        items = local;
-        syncItemsToServer(items);
-      } else if (server) {
+      if (server) {
         items = server;
         saveLocalItems(items);
+      } else if (local) {
+        items = local;
+        syncItemsToServer(items);
       }
 
       renderItems([...items]);
+    }
+
+    // Инициализация: пробуем авто-вход по cookie
+    (async () => {
+      const server = await fetchServerItems();
+      if (server) {
+        loginEl.style.display = 'none';
+        await initItems();
+      }
     })();
   </script>
 </body>

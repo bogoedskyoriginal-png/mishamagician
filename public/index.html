@@ -50,6 +50,17 @@
     const errorEl = document.getElementById('error');
     let redirected = false;
 
+    function getViewerSlug() {
+      const path = window.location.pathname;
+      if (path.startsWith('/u/')) {
+        const parts = path.split('/').filter(Boolean);
+        return parts[1] || 'default';
+      }
+      return 'default';
+    }
+
+    const viewerSlug = getViewerSlug();
+
     function redirectToItem(index) {
       if (redirected) return;
       redirected = true;
@@ -63,7 +74,7 @@
 
     async function loadItems() {
       try {
-        const res = await fetch('/getItems', { cache: 'no-store' });
+        const res = await fetch(`/api/u/${viewerSlug}/getItems`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Не удалось получить список');
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length === 5) {
@@ -76,7 +87,7 @@
 
     async function poll() {
       try {
-        const res = await fetch('/getItem', { cache: 'no-store' });
+        const res = await fetch(`/api/u/${viewerSlug}/getItem`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Сервер недоступен');
         const data = await res.json();
 
