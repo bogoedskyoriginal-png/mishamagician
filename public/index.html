@@ -66,6 +66,9 @@
     let redirected = false;
 
     function getViewerSlug() {
+      const params = new URLSearchParams(window.location.search);
+      const qs = params.get('slug');
+      if (qs) return qs;
       const path = window.location.pathname;
       const parts = path.split('/').filter(Boolean);
       if (parts[0] === 'u') return parts[1] || 'default';
@@ -88,7 +91,7 @@
 
     async function loadItems() {
       try {
-        const res = await fetch(`/api/u/${viewerSlug}/getItems`, { cache: 'no-store' });
+        const res = await fetch(`/api.php?action=viewer_get_items&viewerSlug=${encodeURIComponent(viewerSlug)}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Не удалось получить список');
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length >= 1) {
@@ -102,7 +105,7 @@
 
     async function poll() {
       try {
-        const res = await fetch(`/api/u/${viewerSlug}/getItem`, { cache: 'no-store' });
+        const res = await fetch(`/api.php?action=viewer_get_item&viewerSlug=${encodeURIComponent(viewerSlug)}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Сервер недоступен');
         const data = await res.json();
 

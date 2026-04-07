@@ -399,6 +399,9 @@
     const activationKey = `impulse-activation-${getAdminSlug()}`;
 
     function getAdminSlug() {
+      const params = new URLSearchParams(window.location.search);
+      const qs = params.get('slug');
+      if (qs) return qs;
       const path = window.location.pathname;
       if (path.startsWith('/a/')) {
         const parts = path.split('/').filter(Boolean);
@@ -461,7 +464,7 @@
 
     async function fetchServerItems() {
       try {
-        const res = await fetch(`/api/a/${adminSlug}/getItems`, { cache: 'no-store' });
+        const res = await fetch(`/api.php?action=admin_get_items&adminSlug=${encodeURIComponent(adminSlug)}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Ошибка сервера');
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length >= 1) return data.items;
@@ -475,7 +478,7 @@
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(async () => {
         try {
-          await fetch(`/api/a/${adminSlug}/setItems`, {
+          await fetch(`/api.php?action=admin_set_items&adminSlug=${encodeURIComponent(adminSlug)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ items })
@@ -639,7 +642,7 @@
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await fetch(`/api/a/${adminSlug}/command`, {
+        const res = await fetch(`/api.php?action=admin_command&adminSlug=${encodeURIComponent(adminSlug)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ item: count }),
@@ -762,7 +765,7 @@
 
     resetBtn.addEventListener('click', async () => {
       try {
-        const res = await fetch(`/api/a/${adminSlug}/reset`, { method: 'POST' });
+        const res = await fetch(`/api.php?action=admin_reset&adminSlug=${encodeURIComponent(adminSlug)}`, { method: 'POST' });
         if (!res.ok) throw new Error('Ошибка сервера');
         showNotice('Сброс выполнен');
       } catch (err) {

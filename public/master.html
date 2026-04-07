@@ -138,9 +138,6 @@
       grid-template-columns: 1fr 1fr;
       margin-bottom: 8px;
     }
-    .toolbar.three {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
     .user {
       border-top: 1px solid var(--line);
       padding-top: 8px;
@@ -241,17 +238,8 @@
         <div class="section-title">Создание</div>
         <div class="muted">Введите ID для ссылки (латиница, цифры, -, _; 1–32 символа)</div>
         <input id="viewerSlug" placeholder="Ссылка в телефон зрителя (например: alex)" />
-        <input id="adminSlug" placeholder="Ссылка фокусника (например: alex-admin)" />
-        <div class="toolbar three">
-          <input id="genLength" type="number" min="1" max="5" value="5" placeholder="Длина (1–5)" />
-          <select id="genMode">
-            <option value="letters">Только буквы</option>
-            <option value="digits">Только цифры</option>
-            <option value="mixed">Буквы + цифры</option>
-          </select>
-          <button id="generateBtn">Сгенерировать</button>
-        </div>
         <div class="toolbar">
+          <button id="generateBtn">Сгенерировать</button>
           <button id="createBtn" class="btn-primary">Создать</button>
         </div>
         <div class="error" id="createError"></div>
@@ -278,12 +266,9 @@
     const loginError = document.getElementById('loginError');
 
     const viewerSlug = document.getElementById('viewerSlug');
-    const adminSlug = document.getElementById('adminSlug');
     const generateBtn = document.getElementById('generateBtn');
     const createBtn = document.getElementById('createBtn');
     const createError = document.getElementById('createError');
-    const genLength = document.getElementById('genLength');
-    const genMode = document.getElementById('genMode');
 
     const usersEl = document.getElementById('users');
     const searchInput = document.getElementById('searchInput');
@@ -362,7 +347,7 @@
 
     async function loadUsers() {
       setStatus('Загружаю список...');
-      const res = await fetch('/api/master/list-users');
+      const res = await fetch('/api.php?action=master_list_users');
       if (!res.ok) {
         setStatus('Не удалось загрузить список');
         return;
@@ -379,7 +364,7 @@
 
     async function doLogin() {
       loginError.textContent = '';
-      const res = await fetch('/api/master/login', {
+      const res = await fetch('/api.php?action=master_login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -397,12 +382,10 @@
     }
 
     async function requestSlug() {
-      const length = Math.max(1, Math.min(5, Number(genLength.value) || 5));
-      const mode = genMode.value || 'letters';
-      const res = await fetch('/api/master/generate-slug', {
+      const res = await fetch('/api.php?action=master_generate_slug', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ length, mode })
+        body: JSON.stringify({})
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -414,13 +397,11 @@
     async function createUser() {
       createError.textContent = '';
       viewerSlug.value = viewerSlug.value.trim().toLowerCase();
-      adminSlug.value = adminSlug.value.trim().toLowerCase();
-      const res = await fetch('/api/master/create-user', {
+      const res = await fetch('/api.php?action=master_create_user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          viewerSlug: viewerSlug.value.trim(),
-          adminSlug: adminSlug.value.trim()
+          viewerSlug: viewerSlug.value.trim()
         })
       });
       const data = await res.json();
@@ -459,10 +440,8 @@
       createError.textContent = '';
       try {
         const v = await requestSlug();
-        const a = await requestSlug();
         viewerSlug.value = v;
-        adminSlug.value = a;
-        showToast('ID сгенерированы');
+        showToast('ID сгенерирован');
       } catch (err) {
         createError.textContent = err.message || 'Ошибка генерации';
       }
@@ -475,7 +454,7 @@
 
     // Пробуем авто-вход по cookie
     (async () => {
-      const res = await fetch('/api/master/list-users');
+      const res = await fetch('/api.php?action=master_list_users');
       if (res.ok) {
         showApp();
         switchToUsers();

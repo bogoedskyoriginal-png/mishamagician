@@ -304,13 +304,13 @@ app.get('/api/master/list-users', requireMasterAuth, (req, res) => {
 app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
   const raw = req.body || {};
   const viewerSlug = String(raw.viewerSlug || '').trim().toLowerCase();
-  const adminSlug = String(raw.adminSlug || '').trim().toLowerCase();
+  const adminSlug = viewerSlug;
 
-  if (!isValidSlug(viewerSlug) || !isValidSlug(adminSlug)) {
+  if (!isValidSlug(viewerSlug)) {
     return res.status(400).json({ ok: false, error: 'Некорректный slug' });
   }
 
-  if (RESERVED_SLUGS.has(viewerSlug) || RESERVED_SLUGS.has(adminSlug)) {
+  if (RESERVED_SLUGS.has(viewerSlug)) {
     return res.status(400).json({ ok: false, error: 'Slug зарезервирован' });
   }
 
@@ -327,15 +327,12 @@ app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
   };
 
   reserveSlug(viewerSlug);
-  reserveSlug(adminSlug);
   saveUsers(store);
   res.json({ ok: true, userId });
 });
 
 app.post('/api/master/generate-slug', requireMasterAuth, (req, res) => {
-  const { length, mode } = req.body || {};
-  const safeMode = mode === 'digits' || mode === 'letters' || mode === 'mixed' ? mode : 'letters';
-  const slug = generateSlug(length, safeMode);
+  const slug = generateSlug(5, 'mixed');
   if (!slug) {
     return res.status(400).json({ ok: false, error: 'Не удалось сгенерировать slug' });
   }
