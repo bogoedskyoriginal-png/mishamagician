@@ -3,26 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Тишина</title>
+  <title>Импульс</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap');
     :root {
-      --panel: rgba(24, 19, 17, 0.92);
-      --panel-2: rgba(31, 24, 22, 0.9);
-      --text: #f4f1eb;
-      --muted: #b0a79b;
-      --line: rgba(198, 163, 106, 0.22);
-      --danger: #ffb3b3;
+      --panel: #0a0a0a;
+      --panel-2: #111111;
+      --text: #ffffff;
+      --muted: #d0d0d0;
+      --line: #ffffff;
+      --danger: #ffffff;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background:
-        radial-gradient(900px 520px at 20% -10%, #2b211c 0%, transparent 60%),
-        radial-gradient(800px 420px at 100% 120%, #261d1a 0%, transparent 60%),
-        #0f0c0b;
+      background: #000000;
       color: var(--text);
-      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+      font-family: "Open Sans", "Segoe UI", Tahoma, sans-serif;
       padding: 18px;
       letter-spacing: 0.2px;
     }
@@ -38,7 +35,8 @@
       margin: 0;
       font-size: 26px;
       letter-spacing: 0.8px;
-      font-family: "Cormorant Garamond", serif;
+      font-family: "Open Sans", "Segoe UI", Tahoma, sans-serif;
+      font-weight: 700;
     }
     .pill {
       padding: 6px 10px;
@@ -46,7 +44,7 @@
       border-radius: 999px;
       font-size: 12px;
       color: var(--muted);
-      background: var(--panel);
+      background: #000000;
       backdrop-filter: blur(6px);
     }
     .grid {
@@ -55,8 +53,8 @@
       grid-template-columns: 1fr;
     }
     .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
+      background: #000000;
+      border: 1px solid #ffffff;
       border-radius: 16px;
       padding: 14px;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -72,14 +70,14 @@
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--line);
-      background: var(--panel-2);
+      background: #000000;
       color: var(--text);
       font-size: 14px;
     }
     .tab.active {
-      background: #2a201b;
-      border-color: rgba(198, 163, 106, 0.45);
-      box-shadow: inset 0 0 0 1px rgba(198, 163, 106, 0.18);
+      background: #000000;
+      border-color: #ffffff;
+      box-shadow: inset 0 0 0 1px #ffffff;
     }
     .row { margin-bottom: 8px; }
     input {
@@ -87,21 +85,21 @@
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--line);
-      background: rgba(12, 17, 26, 0.9);
+      background: #000000;
       color: var(--text);
       font-size: 14px;
       outline: none;
     }
     input:focus {
-      border-color: rgba(198, 163, 106, 0.55);
-      box-shadow: 0 0 0 3px rgba(198, 163, 106, 0.15);
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
     }
     button {
       width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--line);
-      background: #2a201b;
+      background: #000000;
       color: var(--text);
       font-size: 14px;
       cursor: pointer;
@@ -132,7 +130,7 @@
     .copy-btn {
       padding: 6px 10px;
       border-radius: 10px;
-      background: #2a201b;
+      background: #000000;
       font-size: 12px;
       width: auto;
     }
