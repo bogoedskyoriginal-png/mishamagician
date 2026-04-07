@@ -570,9 +570,11 @@
     let tapCount = 0;
     let isDown = false;
     let armed = false;
-    let justArmed = false;
+    let ignoreNextTap = false;
     let lastTapTs = 0;
     let lastActivationTapTs = 0;
+    let usingTouch = false;
+    let lastTouchTs = 0;
     let activationMode = getActivationMode();
 
     function resetSequence(msg) {
@@ -634,16 +636,17 @@
         holdTimer = setTimeout(() => {
           if (!isDown) return;
           armed = true;
-          justArmed = true;
+          ignoreNextTap = true; // игнорируем отпускание после удержания
           padEl.classList.add('armed');
           showNotice('Активировано. Тапните 1–N раз');
         }, ACTIVATE_HOLD_MS);
       }
     });
 
-    function handleTapEvent() {
+    function handleTapEvent(source) {
       const now = Date.now();
-      if (now - lastTapTs < 200) return; // защита от двойных событий
+      if (source === 'pointer' && usingTouch && now - lastTouchTs < 500) return;
+      if (now - lastTapTs < 120) return; // защита от дублей
       lastTapTs = now;
 
       if (settingsEl.classList.contains('open')) return;
@@ -651,7 +654,7 @@
         if (activationMode === 'double') {
           if (now - lastActivationTapTs <= DOUBLE_TAP_MS) {
             armed = true;
-            justArmed = true;
+            lastActivationTapTs = 0;
             padEl.classList.add('armed');
             showNotice('Активировано. Тапните 1–N раз');
           } else {
@@ -661,8 +664,8 @@
         }
         return;
       }
-      if (justArmed) {
-        justArmed = false;
+      if (ignoreNextTap) {
+        ignoreNextTap = false;
         return;
       }
 
@@ -684,7 +687,7 @@
     padEl.addEventListener('pointerup', () => {
       isDown = false;
       if (holdTimer) clearTimeout(holdTimer);
-      handleTapEvent();
+      handleTapEvent('pointer');
     });
 
     padEl.addEventListener('pointerleave', () => {
@@ -693,11 +696,17 @@
     });
 
     // Надёжный fallback для iOS (touch-события)
+    padEl.addEventListener('touchstart', () => {
+      usingTouch = true;
+      lastTouchTs = Date.now();
+    }, { passive: true });
+
     padEl.addEventListener('touchend', (e) => {
       e.preventDefault();
       isDown = false;
       if (holdTimer) clearTimeout(holdTimer);
-      handleTapEvent();
+      lastTouchTs = Date.now();
+      handleTapEvent('touch');
     }, { passive: false });
 
 
