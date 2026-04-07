@@ -5,7 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Импульс</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap');
+    @font-face {
+      font-family: 'Open Sans Local';
+      src: url('/fonts/OpenSans.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Open Sans Local';
+      src: url('/fonts/OpenSans.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --panel: #0a0a0a;
       --panel-2: #111111;
@@ -19,7 +32,7 @@
       margin: 0;
       background: #000000;
       color: var(--text);
-      font-family: "Open Sans", "Segoe UI", Tahoma, sans-serif;
+      font-family: "Open Sans Local", "Open Sans", "Segoe UI", Tahoma, sans-serif;
       padding: 18px;
       letter-spacing: 0.2px;
     }
@@ -35,7 +48,7 @@
       margin: 0;
       font-size: 26px;
       letter-spacing: 0.8px;
-      font-family: "Open Sans", "Segoe UI", Tahoma, sans-serif;
+      font-family: "Open Sans Local", "Open Sans", "Segoe UI", Tahoma, sans-serif;
       font-weight: 700;
     }
     .pill {
@@ -73,11 +86,21 @@
       background: #000000;
       color: var(--text);
       font-size: 14px;
+      position: relative;
     }
     .tab.active {
       background: #000000;
       border-color: #ffffff;
       box-shadow: inset 0 0 0 1px #ffffff;
+    }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0.08;
+      border-radius: 12px;
+      pointer-events: none;
     }
     .row { margin-bottom: 8px; }
     input {
@@ -140,6 +163,26 @@
       margin-top: 8px;
       min-height: 16px;
     }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #ffffff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
   </style>
 </head>
 <body>
@@ -184,6 +227,7 @@
       <div class="status" id="status"></div>
     </div>
   </div>
+  <div class="toast" id="toast"></div>
 
   <script>
     const loginCard = document.getElementById('loginCard');
@@ -210,11 +254,22 @@
     const searchInput = document.getElementById('searchInput');
     const refreshBtn = document.getElementById('refreshBtn');
     const statusEl = document.getElementById('status');
+    const toastEl = document.getElementById('toast');
 
     let cachedUsers = [];
 
     function setStatus(text) {
       statusEl.textContent = text || '';
+    }
+
+    let toastTimer = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 1200);
     }
 
     function showApp() {
@@ -228,6 +283,7 @@
       createView.style.display = 'block';
       tabUsers.classList.remove('active');
       tabCreate.classList.add('active');
+      showToast('Создание пользователя');
     }
 
     function switchToUsers() {
@@ -235,6 +291,7 @@
       createView.style.display = 'none';
       tabUsers.classList.add('active');
       tabCreate.classList.remove('active');
+      showToast('Список пользователей');
     }
 
     function renderUsers(list) {
@@ -327,6 +384,7 @@
       viewerSlug.value = '';
       adminSlug.value = '';
       switchToUsers();
+      showToast('Пользователь создан');
       await loadUsers();
     }
 
@@ -337,8 +395,10 @@
       try {
         await navigator.clipboard.writeText(text);
         setStatus('Ссылка скопирована');
+        showToast('Ссылка скопирована');
       } catch (err) {
         setStatus('Не удалось скопировать');
+        showToast('Не удалось скопировать');
       }
     });
 
