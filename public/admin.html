@@ -204,6 +204,41 @@
       margin-bottom: 12px;
     }
 
+    .toggle-group {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .toggle-option {
+      display: block;
+      position: relative;
+    }
+
+    .toggle-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-option span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #ffffff;
+      background: #000000;
+      color: #ffffff;
+      font-size: 13px;
+      transition: all 160ms ease;
+    }
+
+    .toggle-option input:checked + span {
+      background: #ffffff;
+      color: #000000;
+    }
+
     .item-row {
       display: grid;
       grid-template-columns: 1fr 42px;
@@ -317,19 +352,15 @@
       <div class="items-list" id="itemsList"></div>
 
       <div class="items-list" style="margin-top:16px;">Расширенные настройки</div>
-      <div class="inputs" id="activationSettings">
-        <div class="item-row" style="grid-template-columns: 1fr;">
-          <label>
-            <input type="radio" name="activationMode" value="hold" />
-            Удержание &gt; 2 секунд
-          </label>
-        </div>
-        <div class="item-row" style="grid-template-columns: 1fr;">
-          <label>
-            <input type="radio" name="activationMode" value="double" />
-            Два коротких тапа &lt; 1 секунды
-          </label>
-        </div>
+      <div class="toggle-group" id="activationSettings">
+        <label class="toggle-option">
+          <input type="radio" name="activationMode" value="hold" />
+          <span>Удержание &gt; 2 секунд</span>
+        </label>
+        <label class="toggle-option">
+          <input type="radio" name="activationMode" value="double" />
+          <span>Два коротких тапа &lt; 1 секунды</span>
+        </label>
       </div>
     </div>
 
