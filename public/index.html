@@ -99,10 +99,11 @@
           const max = Math.max(1, items.length);
           const index = Math.min(max, data.item) - 1;
           clearInterval(pollTimer);
-          clearTimeout(timeoutTimer);
+          if (timeoutTimer) clearTimeout(timeoutTimer);
           redirectToItem(index);
         }
         errorEl.textContent = '';
+        resetTimeout();
       } catch (err) {
         // Ошибка сети — просто показываем текст, но продолжаем опрос
         errorEl.textContent = 'Проблема с сетью, продолжаю ждать...';
@@ -112,13 +113,20 @@
     // Опрос каждые 500 мс
     const pollTimer = setInterval(poll, 500);
 
-    // Таймаут 30 секунд — уходим на первый предмет
-    const timeoutTimer = setTimeout(() => {
-      clearInterval(pollTimer);
-      redirectToItem(0);
-    }, 30000);
+    // Таймаут 30 секунд — уходим на первый предмет.
+    // Сбрасываем таймер при любом успешном ответе сервера,
+    // чтобы редирект не происходил, пока фокусник активно работает.
+    let timeoutTimer = null;
+    function resetTimeout() {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      timeoutTimer = setTimeout(() => {
+        clearInterval(pollTimer);
+        redirectToItem(0);
+      }, 30000);
+    }
 
     // Первый вызов сразу, чтобы не ждать 500 мс
+    resetTimeout();
     loadItems().then(poll);
   </script>
 </body>
