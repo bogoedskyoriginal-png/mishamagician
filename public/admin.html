@@ -3,29 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Админ-панель</title>
+  <title>Тишина — Админ</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap');
     :root {
-      --bg: #0f1115;
-      --card: #1b1f2a;
-      --accent: #4dd4ff;
-      --text: #ffffff;
+      --bg: #0a0d12;
+      --panel: rgba(18, 24, 38, 0.9);
+      --panel-2: rgba(13, 18, 28, 0.9);
+      --accent: #8fd3ff;
+      --accent-2: #b7ffd9;
+      --text: #eef2f7;
       --muted: #9aa4b2;
+      --line: rgba(86, 98, 120, 0.35);
+      --glow: rgba(143, 211, 255, 0.22);
     }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(1000px 500px at 80% -20%, #1f2a3f 0%, transparent 60%),
+        radial-gradient(900px 500px at 0% 110%, #192238 0%, transparent 60%),
+        #0a0d12;
       color: var(--text);
-      font-family: Arial, sans-serif;
+      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
       height: 100vh;
       overflow: hidden;
+      letter-spacing: 0.2px;
     }
+    button, input { transition: all 160ms ease; }
 
     .pad {
       position: fixed;
       inset: 0;
-      background: #121826;
+      background: linear-gradient(160deg, rgba(16, 22, 34, 0.95) 0%, rgba(8, 11, 16, 0.98) 60%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -38,14 +48,15 @@
     }
 
     .pad.armed {
-      background: #0d2030;
+      box-shadow: inset 0 0 0 1px var(--glow), inset 0 0 20px rgba(143, 211, 255, 0.08);
+      background: linear-gradient(160deg, rgba(18, 30, 48, 0.98) 0%, rgba(8, 11, 16, 0.98) 60%);
     }
 
     .notice {
       position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
       min-height: 22px;
       text-align: center;
       color: var(--muted);
@@ -54,29 +65,39 @@
       opacity: 0.85;
     }
 
+    .settings-btn,
+    .reset-btn,
+    .back-btn {
+      border: 1px solid var(--line);
+      background: rgba(15, 21, 32, 0.9);
+      color: var(--text);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+    }
+    .settings-btn:hover,
+    .reset-btn:hover,
+    .back-btn:hover { transform: translateY(-1px); }
+    .settings-btn:active,
+    .reset-btn:active,
+    .back-btn:active { transform: translateY(0); }
+
     .settings-btn {
       position: fixed;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
       width: 36px;
       height: 36px;
       border-radius: 999px;
-      border: 1px solid #2c3342;
-      background: var(--card);
-      color: var(--text);
       font-size: 16px;
       z-index: 3;
     }
 
     .reset-btn {
       position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
-      background: var(--card);
-      color: var(--text);
+      top: 12px;
+      left: 12px;
+      padding: 6px 12px;
+      border-radius: 12px;
       font-size: 12px;
       z-index: 3;
     }
@@ -84,75 +105,183 @@
     .settings {
       position: fixed;
       inset: 0;
-      background: rgba(5, 8, 12, 0.92);
+      background: rgba(6, 9, 14, 0.94);
       display: none;
       z-index: 10;
-      padding: 16px;
+      padding: 18px;
       overflow: auto;
     }
 
-    .settings.open {
-      display: block;
+    .settings.open { display: block; }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      font-size: 16px;
     }
 
     .settings h1 {
-      font-size: 20px;
-      margin: 0 0 12px 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.6px;
+    }
+
+    .settings-tabs {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0 12px 0;
+    }
+
+    .settings-tab {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .settings-tab.active {
+      background: #0f2237;
+      border-color: rgba(143, 211, 255, 0.35);
+      box-shadow: inset 0 0 0 1px rgba(143, 211, 255, 0.15);
     }
 
     .inputs {
       display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
-    .inputs input {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
-      background: var(--card);
-      color: var(--text);
-      font-size: 16px;
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 8px;
+      align-items: center;
     }
+
+    .item-row input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 15px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      outline: none;
+    }
+    .item-row input:focus {
+      border-color: rgba(143, 211, 255, 0.45);
+      box-shadow: 0 0 0 3px rgba(143, 211, 255, 0.12);
+    }
+
+    .delete-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(20, 16, 20, 0.7);
+      color: #ffb3b3;
+      font-size: 18px;
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px dashed var(--line);
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+    .add-btn:hover { border-color: rgba(143, 211, 255, 0.5); color: var(--text); }
 
     .items-list {
       margin-top: 10px;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--muted);
     }
 
-    .items-list b {
-      color: var(--text);
+    .items-list b { color: var(--text); }
+
+    .template-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--panel-2);
+      margin-bottom: 8px;
     }
 
-    .close-btn {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
-      background: var(--card);
+    .template-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .template-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .template-btn {
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0f2237;
       color: var(--text);
-      font-size: 16px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="pad" id="pad">Удерживайте 2 сек, затем повторите 1–5 раз</div>
+  <div class="pad" id="pad">Удерживайте 2 сек, затем тапните 1–5 раз</div>
   <button class="reset-btn" id="resetBtn">Сброс</button>
   <button class="settings-btn" id="settingsBtn">⚙</button>
   <div class="notice" id="notice"></div>
 
   <div class="settings" id="settings">
-    <h1>Настройки предметов</h1>
-    <div class="inputs" id="inputs"></div>
-    <button class="close-btn" id="closeBtn">Закрыть</button>
-    <div class="items-list" id="itemsList"></div>
+    <div class="settings-header">
+      <button class="back-btn" id="backBtn">←</button>
+      <h1>Предметы</h1>
+    </div>
+    <div class="settings-tabs">
+      <button class="settings-tab active" id="tabItems">Предметы</button>
+      <button class="settings-tab" id="tabTemplates">Шаблоны</button>
+    </div>
+
+    <div id="itemsView">
+      <div class="inputs" id="inputs"></div>
+      <button class="add-btn" id="addBtn">＋</button>
+      <button class="add-btn" id="saveTemplateBtn">Сохранить как шаблон</button>
+      <div class="items-list" id="itemsList"></div>
+    </div>
+
+    <div id="templatesView" style="display:none;">
+      <div class="items-list">Хранится до 10 шаблонов</div>
+      <div id="templatesList"></div>
+    </div>
   </div>
 
   <script>
     const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
     const STORAGE_KEY = 'magic-items';
+    const TEMPLATES_KEY = 'magic-templates';
+    const MAX_ITEMS = 20;
+    const MAX_TEMPLATES = 10;
 
     const inputsEl = document.getElementById('inputs');
     const padEl = document.getElementById('pad');
@@ -160,8 +289,17 @@
     const itemsListEl = document.getElementById('itemsList');
     const settingsEl = document.getElementById('settings');
     const settingsBtn = document.getElementById('settingsBtn');
-    const closeBtn = document.getElementById('closeBtn');
+    const backBtn = document.getElementById('backBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const addBtn = document.getElementById('addBtn');
+    const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+    const templatesListEl = document.getElementById('templatesList');
+    const tabItems = document.getElementById('tabItems');
+    const tabTemplates = document.getElementById('tabTemplates');
+    const itemsView = document.getElementById('itemsView');
+    const templatesView = document.getElementById('templatesView');
+
+    let currentItems = [...DEFAULT_ITEMS];
 
     function getAdminSlug() {
       const path = window.location.pathname;
@@ -178,11 +316,26 @@
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 5) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= 1) return parsed;
       } catch (err) {
         // Если данные битые — используем дефолт
       }
       return null;
+    }
+
+    function loadTemplates() {
+      try {
+        const saved = localStorage.getItem(TEMPLATES_KEY);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (err) {
+        // ignore
+      }
+      return [];
+    }
+
+    function saveTemplates(list) {
+      localStorage.setItem(TEMPLATES_KEY, JSON.stringify(list.slice(0, MAX_TEMPLATES)));
     }
 
     function saveLocalItems(items) {
@@ -194,7 +347,7 @@
         const res = await fetch(`/api/a/${adminSlug}/getItems`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Ошибка сервера');
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length === 5) return data.items;
+        if (Array.isArray(data.items) && data.items.length >= 1) return data.items;
       } catch (err) {
         // Игнорируем
       }
@@ -219,26 +372,65 @@
 
     function renderItems(items) {
       inputsEl.innerHTML = '';
+      currentItems = [...items];
 
       items.forEach((name, index) => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.setAttribute('draggable', 'true');
+        row.dataset.index = String(index);
+
         const input = document.createElement('input');
         input.value = name;
         input.placeholder = `Предмет ${index + 1}`;
         input.addEventListener('input', () => {
-          items[index] = input.value.trim() || DEFAULT_ITEMS[index];
-          saveLocalItems(items);
-          syncItemsToServer(items);
-          updateItemsList(items);
+          currentItems[index] = input.value.trim() || `Предмет ${index + 1}`;
+          saveLocalItems(currentItems);
+          syncItemsToServer(currentItems);
+          updateItemsList(currentItems);
         });
-        inputsEl.appendChild(input);
+        row.appendChild(input);
+
+        const del = document.createElement('button');
+        del.className = 'delete-btn';
+        del.textContent = '×';
+        del.addEventListener('click', () => {
+          if (currentItems.length <= 1) return;
+          currentItems.splice(index, 1);
+          saveLocalItems(currentItems);
+          syncItemsToServer(currentItems);
+          renderItems(currentItems);
+        });
+        row.appendChild(del);
+
+        inputsEl.appendChild(row);
       });
 
       updateItemsList(items);
+      addBtn.style.display = currentItems.length >= MAX_ITEMS ? 'none' : 'block';
     }
 
     function updateItemsList(items) {
-      itemsListEl.innerHTML = `1: <b>${items[0]}</b> · 2: <b>${items[1]}</b> · 3: <b>${items[2]}</b> · 4: <b>${items[3]}</b> · 5: <b>${items[4]}</b>`;
+      const preview = items
+        .map((v, i) => `${i + 1}: <b>${v}</b>`)
+        .join(' · ');
+      itemsListEl.innerHTML = preview;
     }
+
+    function renderTemplates() {
+      const list = loadTemplates();
+      templatesListEl.innerHTML = '';
+
+      if (list.length === 0) {
+        templatesListEl.innerHTML = '<div class=\"items-list\">Шаблонов пока нет</div>';
+        return;
+      }
+
+      list.forEach((t, idx) => {
+        const card = document.createElement('div');
+        card.className = 'template-card';
+        const preview = t.items.map((v, i) => `${i + 1}. ${v}`).join(' · ');
+        card.innerHTML = `\n          <div class=\"template-title\">Шаблон ${idx + 1}</div>\n          <div class=\"items-list\">${preview}</div>\n          <div class=\"template-actions\">\n            <button class=\"template-btn\" data-apply=\"${idx}\">Применить</button>\n            <button class=\"template-btn\" data-delete=\"${idx}\">Удалить</button>\n          </div>\n        `;\n        templatesListEl.appendChild(card);\n      });\n    }
 
     let noticeTimer = null;
     function showNotice(text) {
@@ -284,7 +476,8 @@
 
     function finalizeSequence() {
       if (tapCount <= 0) return;
-      const count = Math.max(1, Math.min(5, tapCount));
+      const max = Math.max(1, currentItems.length || 1);
+      const count = Math.max(1, Math.min(max, tapCount));
       resetSequence();
       sendCommand(count);
     }
@@ -294,13 +487,12 @@
       if (isDown) return;
       isDown = true;
 
-      // Если не активированы — ждём удержание
       if (!armed) {
         holdTimer = setTimeout(() => {
           if (!isDown) return;
           armed = true;
           padEl.classList.add('armed');
-          showNotice('Активировано. Тапните 1–5 раз');
+          showNotice('Активировано. Тапните 1–N раз');
         }, ACTIVATE_HOLD_MS);
       }
     });
@@ -319,7 +511,8 @@
       if (settingsEl.classList.contains('open')) return;
       if (!armed) return;
 
-      if (tapCount < 5) {
+      const max = Math.max(1, currentItems.length || 1);
+      if (tapCount < max) {
         tapCount += 1;
       }
 
@@ -334,7 +527,7 @@
       showNotice('Открыты настройки');
     });
 
-    closeBtn.addEventListener('click', () => {
+    backBtn.addEventListener('click', () => {
       settingsEl.classList.remove('open');
       showNotice('Настройки закрыты');
     });
@@ -347,6 +540,95 @@
       } catch (err) {
         showNotice('Ошибка сброса');
       }
+    });
+
+    addBtn.addEventListener('click', () => {
+      if (currentItems.length >= MAX_ITEMS) return;
+      currentItems.push(`Предмет ${currentItems.length + 1}`);
+      saveLocalItems(currentItems);
+      syncItemsToServer(currentItems);
+      renderItems(currentItems);
+    });
+
+    saveTemplateBtn.addEventListener('click', () => {
+      const list = loadTemplates();
+      if (list.length >= MAX_TEMPLATES) {
+        showNotice('Лимит шаблонов: 10');
+        return;
+      }
+      list.unshift({ items: [...currentItems] });
+      saveTemplates(list);
+      renderTemplates();
+      showNotice('Шаблон сохранён');
+    });
+
+    templatesListEl.addEventListener('click', (e) => {
+      const applyBtn = e.target.closest('[data-apply]');
+      const delBtn = e.target.closest('[data-delete]');
+      const list = loadTemplates();
+      if (applyBtn) {
+        const idx = Number(applyBtn.getAttribute('data-apply'));
+        if (!Number.isInteger(idx) || !list[idx]) return;
+        const items = list[idx].items.slice(0, MAX_ITEMS);
+        currentItems = items.length ? items : ['Предмет 1'];
+        saveLocalItems(currentItems);
+        syncItemsToServer(currentItems);
+        renderItems(currentItems);
+        showNotice('Шаблон применён');
+      }
+      if (delBtn) {
+        const idx = Number(delBtn.getAttribute('data-delete'));
+        if (!Number.isInteger(idx) || !list[idx]) return;
+        list.splice(idx, 1);
+        saveTemplates(list);
+        renderTemplates();
+        showNotice('Шаблон удалён');
+      }
+    });
+
+    tabItems.addEventListener('click', () => {
+      tabItems.classList.add('active');
+      tabTemplates.classList.remove('active');
+      itemsView.style.display = 'block';
+      templatesView.style.display = 'none';
+    });
+
+    tabTemplates.addEventListener('click', () => {
+      tabTemplates.classList.add('active');
+      tabItems.classList.remove('active');
+      itemsView.style.display = 'none';
+      templatesView.style.display = 'block';
+      renderTemplates();
+    });
+
+    // Drag & drop сортировка
+    let dragIndex = null;
+    inputsEl.addEventListener('dragstart', (e) => {
+      const row = e.target.closest('.item-row');
+      if (!row) return;
+      dragIndex = Number(row.dataset.index);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    inputsEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    inputsEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const row = e.target.closest('.item-row');
+      if (!row || dragIndex === null) return;
+      const dropIndex = Number(row.dataset.index);
+      if (Number.isInteger(dragIndex) && Number.isInteger(dropIndex) && dragIndex !== dropIndex) {
+        const next = [...currentItems];
+        const [moved] = next.splice(dragIndex, 1);
+        next.splice(dropIndex, 0, moved);
+        currentItems = next;
+        saveLocalItems(currentItems);
+        syncItemsToServer(currentItems);
+        renderItems(currentItems);
+      }
+      dragIndex = null;
     });
 
     async function initItems() {
