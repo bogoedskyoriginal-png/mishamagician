@@ -249,22 +249,22 @@
       }, 1500);
     }
 
-    // Логика ввода долгими нажатиями
-    const LONG_PRESS_MS = 2000;
-    const MAX_GAP_MS = 5000;
+    // Логика: удержание 2 сек для активации, затем тапы с интервалом <= 1 сек
+    const ACTIVATE_HOLD_MS = 2000;
+    const TAP_GAP_MS = 1000;
 
-    let pressTimer = null;
-    let finalizeTimer = null;
+    let holdTimer = null;
+    let tapTimer = null;
     let tapCount = 0;
     let isDown = false;
-    let countedThisPress = false;
+    let armed = false;
 
     function resetSequence(msg) {
       tapCount = 0;
-      countedThisPress = false;
+      armed = false;
       padEl.classList.remove('armed');
-      if (pressTimer) clearTimeout(pressTimer);
-      if (finalizeTimer) clearTimeout(finalizeTimer);
+      if (holdTimer) clearTimeout(holdTimer);
+      if (tapTimer) clearTimeout(tapTimer);
       if (msg) showNotice(msg);
     }
 
@@ -293,29 +293,40 @@
       if (settingsEl.classList.contains('open')) return;
       if (isDown) return;
       isDown = true;
-      countedThisPress = false;
-      padEl.classList.add('armed');
 
-      pressTimer = setTimeout(() => {
-        if (!isDown || countedThisPress) return;
-        countedThisPress = true;
-        tapCount += 1;
-        if (tapCount > 5) tapCount = 5;
-        showNotice(`Долгих нажатий: ${tapCount}`);
-
-        if (finalizeTimer) clearTimeout(finalizeTimer);
-        finalizeTimer = setTimeout(finalizeSequence, MAX_GAP_MS);
-      }, LONG_PRESS_MS);
+      // Если не активированы — ждём удержание
+      if (!armed) {
+        holdTimer = setTimeout(() => {
+          if (!isDown) return;
+          armed = true;
+          padEl.classList.add('armed');
+          showNotice('Активировано. Тапните 1–5 раз');
+        }, ACTIVATE_HOLD_MS);
+      }
     });
 
     padEl.addEventListener('pointerup', () => {
       isDown = false;
-      if (pressTimer) clearTimeout(pressTimer);
+      if (holdTimer) clearTimeout(holdTimer);
     });
 
     padEl.addEventListener('pointerleave', () => {
       isDown = false;
-      if (pressTimer) clearTimeout(pressTimer);
+      if (holdTimer) clearTimeout(holdTimer);
+    });
+
+    padEl.addEventListener('click', () => {
+      if (settingsEl.classList.contains('open')) return;
+      if (!armed) return;
+
+      if (tapCount < 5) {
+        tapCount += 1;
+      }
+
+      showNotice(`Тапов: ${tapCount}`);
+
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(finalizeSequence, TAP_GAP_MS);
     });
 
     settingsBtn.addEventListener('click', () => {
