@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 8080;
 
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const GENERATED_FILE = path.join(DATA_DIR, 'generated.json');
 
 const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
 const MAX_ITEMS = 20;
@@ -66,6 +67,8 @@ function saveUsers(data) {
 }
 
 let store = loadUsers();
+let generatedSlugs = new Set();
+const RESERVED_SLUGS = new Set(['a', 'master', 'admin.html', 'index.html', 'u']);
 
 function getUserByViewerSlug(slug) {
   return Object.values(store.users).find(u => u.viewerSlug === slug) || null;
@@ -81,7 +84,7 @@ function getUserIdByAdminSlug(slug) {
 }
 
 function isValidSlug(s) {
-  return typeof s === 'string' && /^[a-zA-Z0-9_-]{3,32}$/.test(s);
+  return typeof s === 'string' && /^[a-zA-Z0-9_-]{1,32}$/.test(s);
 }
 
 function normalizeItems(list) {
@@ -116,6 +119,73 @@ function issueToken() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+function loadGenerated() {
+  ensureDataDir();
+  if (!fs.existsSync(GENERATED_FILE)) {
+    const seeds = new Set();
+    Object.values(store.users).forEach((u) => {
+      if (u.viewerSlug) seeds.add(String(u.viewerSlug));
+      if (u.adminSlug) seeds.add(String(u.adminSlug));
+    });
+    fs.writeFileSync(GENERATED_FILE, JSON.stringify({ slugs: Array.from(seeds) }, null, 2));
+    return seeds;
+  }
+  try {
+    const raw = fs.readFileSync(GENERATED_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    const list = Array.isArray(parsed.slugs) ? parsed.slugs : [];
+    const set = new Set(list.map((v) => String(v)));
+    Object.values(store.users).forEach((u) => {
+      if (u.viewerSlug) set.add(String(u.viewerSlug));
+      if (u.adminSlug) set.add(String(u.adminSlug));
+    });
+    return set;
+  } catch (err) {
+    return new Set();
+  }
+}
+
+function saveGenerated() {
+  ensureDataDir();
+  fs.writeFileSync(GENERATED_FILE, JSON.stringify({ slugs: Array.from(generatedSlugs) }, null, 2));
+}
+
+function reserveSlug(slug) {
+  if (!slug) return;
+  generatedSlugs.add(String(slug));
+  saveGenerated();
+}
+
+function slugExists(slug) {
+  return !!getUserByViewerSlug(slug) || !!getUserByAdminSlug(slug) || generatedSlugs.has(slug);
+}
+
+function generateSlug(length, mode) {
+  const len = Math.max(1, Math.min(5, Number(length) || 5));
+  const letters = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const charset = mode === 'digits' ? digits : mode === 'letters' ? letters : letters + digits;
+  const maxCombos = Math.pow(charset.length, len);
+  const usedCount = generatedSlugs.size;
+  if (usedCount >= maxCombos) {
+    return null;
+  }
+
+  for (let i = 0; i < 1000; i += 1) {
+    const bytes = crypto.randomBytes(len);
+    let out = '';
+    for (let j = 0; j < len; j += 1) {
+      out += charset[bytes[j] % charset.length];
+    }
+    if (RESERVED_SLUGS.has(out)) continue;
+    if (!slugExists(out)) return out;
+  }
+  return null;
+}
+
+generatedSlugs = loadGenerated();
+saveGenerated();
+
 // ===== HTML routes =====
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -129,7 +199,7 @@ app.get('/u/:viewerSlug', (req, res) => {
 app.get('/:viewerSlug', (req, res, next) => {
   const slug = req.params.viewerSlug;
   // Резервируем системные пути
-  if (slug === 'a' || slug === 'master' || slug === 'admin.html' || slug === 'index.html' || slug === 'u') {
+  if (RESERVED_SLUGS.has(slug)) {
     return next();
   }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -232,10 +302,16 @@ app.get('/api/master/list-users', requireMasterAuth, (req, res) => {
 });
 
 app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
-  const { viewerSlug, adminSlug } = req.body || {};
+  const raw = req.body || {};
+  const viewerSlug = String(raw.viewerSlug || '').trim().toLowerCase();
+  const adminSlug = String(raw.adminSlug || '').trim().toLowerCase();
 
   if (!isValidSlug(viewerSlug) || !isValidSlug(adminSlug)) {
     return res.status(400).json({ ok: false, error: 'Некорректный slug' });
+  }
+
+  if (RESERVED_SLUGS.has(viewerSlug) || RESERVED_SLUGS.has(adminSlug)) {
+    return res.status(400).json({ ok: false, error: 'Slug зарезервирован' });
   }
 
   if (getUserByViewerSlug(viewerSlug) || getUserByAdminSlug(adminSlug)) {
@@ -250,8 +326,21 @@ app.post('/api/master/create-user', requireMasterAuth, (req, res) => {
     lastItem: null,
   };
 
+  reserveSlug(viewerSlug);
+  reserveSlug(adminSlug);
   saveUsers(store);
   res.json({ ok: true, userId });
+});
+
+app.post('/api/master/generate-slug', requireMasterAuth, (req, res) => {
+  const { length, mode } = req.body || {};
+  const safeMode = mode === 'digits' || mode === 'letters' || mode === 'mixed' ? mode : 'letters';
+  const slug = generateSlug(length, safeMode);
+  if (!slug) {
+    return res.status(400).json({ ok: false, error: 'Не удалось сгенерировать slug' });
+  }
+  reserveSlug(slug);
+  res.json({ ok: true, slug });
 });
 
 app.listen(PORT, () => {

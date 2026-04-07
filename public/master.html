@@ -36,7 +36,7 @@
       padding: 18px;
       letter-spacing: 0.2px;
     }
-    button, input, .tab, .pill { transition: all 160ms ease; }
+    button, input, select, .tab, .pill { transition: all 160ms ease; }
     header {
       display: flex;
       align-items: center;
@@ -103,7 +103,7 @@
       pointer-events: none;
     }
     .row { margin-bottom: 8px; }
-    input {
+    input, select {
       width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
@@ -113,7 +113,7 @@
       font-size: 14px;
       outline: none;
     }
-    input:focus {
+    input:focus, select:focus {
       border-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
     }
@@ -137,6 +137,9 @@
       gap: 8px;
       grid-template-columns: 1fr 1fr;
       margin-bottom: 8px;
+    }
+    .toolbar.three {
+      grid-template-columns: 1fr 1fr 1fr;
     }
     .user {
       border-top: 1px solid var(--line);
@@ -236,11 +239,19 @@
 
       <div id="createView" class="section" style="display:none;">
         <div class="section-title">Создание</div>
-        <div class="muted">Введите ID для ссылки (латиница, цифры, -, _; 3–32 символа)</div>
+        <div class="muted">Введите ID для ссылки (латиница, цифры, -, _; 1–32 символа)</div>
         <input id="viewerSlug" placeholder="Ссылка в телефон зрителя (например: alex)" />
         <input id="adminSlug" placeholder="Ссылка фокусника (например: alex-admin)" />
-        <div class="toolbar">
+        <div class="toolbar three">
+          <input id="genLength" type="number" min="1" max="5" value="5" placeholder="Длина (1–5)" />
+          <select id="genMode">
+            <option value="letters">Только буквы</option>
+            <option value="digits">Только цифры</option>
+            <option value="mixed">Буквы + цифры</option>
+          </select>
           <button id="generateBtn">Сгенерировать</button>
+        </div>
+        <div class="toolbar">
           <button id="createBtn" class="btn-primary">Создать</button>
         </div>
         <div class="error" id="createError"></div>
@@ -271,6 +282,8 @@
     const generateBtn = document.getElementById('generateBtn');
     const createBtn = document.getElementById('createBtn');
     const createError = document.getElementById('createError');
+    const genLength = document.getElementById('genLength');
+    const genMode = document.getElementById('genMode');
 
     const usersEl = document.getElementById('users');
     const searchInput = document.getElementById('searchInput');
@@ -383,13 +396,25 @@
       await loadUsers();
     }
 
-    function randomSlug(base) {
-      const tail = Math.random().toString(36).slice(2, 6);
-      return `${base}-${tail}`;
+    async function requestSlug() {
+      const length = Math.max(1, Math.min(5, Number(genLength.value) || 5));
+      const mode = genMode.value || 'letters';
+      const res = await fetch('/api/master/generate-slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ length, mode })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data && data.error ? data.error : 'Ошибка генерации');
+      }
+      return data.slug;
     }
 
     async function createUser() {
       createError.textContent = '';
+      viewerSlug.value = viewerSlug.value.trim().toLowerCase();
+      adminSlug.value = adminSlug.value.trim().toLowerCase();
       const res = await fetch('/api/master/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -430,10 +455,17 @@
     });
 
     createBtn.addEventListener('click', createUser);
-    generateBtn.addEventListener('click', () => {
-      const base = viewerSlug.value.trim() || 'user';
-      viewerSlug.value = randomSlug(base);
-      adminSlug.value = randomSlug(base + '-admin');
+    generateBtn.addEventListener('click', async () => {
+      createError.textContent = '';
+      try {
+        const v = await requestSlug();
+        const a = await requestSlug();
+        viewerSlug.value = v;
+        adminSlug.value = a;
+        showToast('ID сгенерированы');
+      } catch (err) {
+        createError.textContent = err.message || 'Ошибка генерации';
+      }
     });
 
     tabCreate.addEventListener('click', switchToCreate);
