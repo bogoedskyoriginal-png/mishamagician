@@ -64,6 +64,8 @@
 
     const errorEl = document.getElementById('error');
     let redirected = false;
+    let pollingEnabled = true;
+    let errorStreak = 0;
 
     function getViewerSlug() {
       const params = new URLSearchParams(window.location.search);
@@ -106,6 +108,13 @@
     async function poll() {
       try {
         const res = await fetch(`/api.php?action=viewer_get_item&viewerSlug=${encodeURIComponent(viewerSlug)}`, { cache: 'no-store' });
+        if (res.status === 404) {
+          pollingEnabled = false;
+          clearInterval(pollTimer);
+          // Таймаут больше не используется
+          errorEl.textContent = 'Ссылка не активна. Проверьте, что она создана в мастер-админке.';
+          return;
+        }
         if (!res.ok) throw new Error('Сервер недоступен');
         const data = await res.json();
 
@@ -115,34 +124,26 @@
           const max = Math.max(1, items.length);
           const index = Math.min(max, data.item) - 1;
           clearInterval(pollTimer);
-          if (timeoutTimer) clearTimeout(timeoutTimer);
+          // Таймаут больше не используется
           redirectToItem(index);
         }
+        errorStreak = 0;
         errorEl.textContent = '';
-        resetTimeout();
       } catch (err) {
         // Ошибка сети — просто показываем текст, но продолжаем опрос
-        errorEl.textContent = 'Проблема с сетью, продолжаю ждать...';
+        errorStreak += 1;
+        if (errorStreak >= 3) {
+          errorEl.textContent = 'Проблема с сетью, продолжаю ждать...';
+        }
       }
     }
 
     // Опрос каждые 500 мс
-    const pollTimer = setInterval(poll, 500);
+    const pollTimer = setInterval(() => {
+      if (pollingEnabled) poll();
+    }, 500);
 
-    // Таймаут 30 секунд — уходим на первый предмет.
-    // Сбрасываем таймер при любом успешном ответе сервера,
-    // чтобы редирект не происходил, пока фокусник активно работает.
-    let timeoutTimer = null;
-    function resetTimeout() {
-      if (timeoutTimer) clearTimeout(timeoutTimer);
-      timeoutTimer = setTimeout(() => {
-        clearInterval(pollTimer);
-        redirectToItem(0);
-      }, 30000);
-    }
-
-    // Первый вызов сразу, чтобы не ждать 500 мс
-    resetTimeout();
+    // Таймаут убран: зритель ждёт бесконечно.
     loadItems().then(poll);
   </script>
 </body>
