@@ -329,7 +329,7 @@
   </style>
 </head>
 <body>
-  <div class="pad" id="pad">Удерживайте 2 сек, затем тапните 1–5 раз</div>
+  <div class="pad" id="pad">Удерживайте экран 2 секунда, затем тапните нужное количество раз</div>
   <button class="reset-btn" id="resetBtn">Сброс</button>
   <button class="settings-btn" id="settingsBtn">⚙</button>
   <div class="notice" id="notice"></div>
@@ -424,6 +424,11 @@
       radios.forEach(r => {
         r.checked = r.value === mode;
       });
+      if (mode === 'double') {
+        padEl.textContent = 'Дважды быстро нажмите на экран, затем тапните нужное количество раз';
+      } else {
+        padEl.textContent = 'Удерживайте экран 2 секунда, затем тапните нужное количество раз';
+      }
     }
 
     function loadLocalItems() {
