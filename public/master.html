@@ -6,22 +6,54 @@
   <title>Главная админка</title>
   <style>
     :root {
-      --bg: #0f1115;
-      --card: #1b1f2a;
+      --bg: #0c0f14;
+      --panel: #141a24;
+      --panel-2: #0f1520;
       --accent: #4dd4ff;
-      --text: #ffffff;
+      --accent-2: #7cffc2;
+      --text: #eef2f7;
       --muted: #9aa4b2;
+      --line: #273043;
+      --danger: #ffb3b3;
     }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: var(--bg);
+      background: radial-gradient(1200px 600px at 20% -10%, #1b2333 0%, #0c0f14 60%);
       color: var(--text);
-      font-family: Arial, sans-serif;
-      padding: 16px;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      padding: 18px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
     }
     h1 {
-      margin: 0 0 12px 0;
+      margin: 0;
       font-size: 22px;
+      letter-spacing: 0.3px;
+    }
+    .pill {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel);
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
     }
     .tabs {
       display: flex;
@@ -31,9 +63,9 @@
     .tab {
       flex: 1;
       padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
-      background: #121826;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
       color: var(--text);
       font-size: 14px;
     }
@@ -41,87 +73,126 @@
       background: #0d2030;
       border-color: #3b4a66;
     }
-    .card {
-      background: var(--card);
-      border: 1px solid #2c3342;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 12px;
+    .row {
+      margin-bottom: 8px;
     }
     input {
       width: 100%;
       padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
-      background: #121826;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0f1520;
       color: var(--text);
       font-size: 14px;
-      margin-bottom: 8px;
     }
     button {
       width: 100%;
       padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid #2c3342;
+      border-radius: 10px;
+      border: 1px solid var(--line);
       background: #0d2030;
       color: var(--text);
       font-size: 14px;
+      cursor: pointer;
     }
     .muted {
       color: var(--muted);
       font-size: 12px;
     }
-    .row {
+    .error {
+      color: var(--danger);
+      font-size: 12px;
+      min-height: 14px;
+    }
+    .toolbar {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
       margin-bottom: 8px;
     }
     .user {
-      border-top: 1px solid #2c3342;
+      border-top: 1px solid var(--line);
       padding-top: 8px;
       margin-top: 8px;
     }
-    .error {
-      color: #ffb3b3;
+    .links {
+      display: grid;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .link-row {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+    .copy-btn {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #10263a;
       font-size: 12px;
-      min-height: 14px;
+      width: auto;
+    }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 16px;
     }
   </style>
 </head>
 <body>
-  <h1>Главная админка</h1>
+  <header>
+    <h1>Главная админка</h1>
+    <div class="pill" id="sessionPill">Гость</div>
+  </header>
 
-  <div class="tabs" id="tabs" style="display:none;">
-    <button class="tab active" id="tabUsers">Пользователи</button>
-    <button class="tab" id="tabCreate">Создать</button>
-  </div>
+  <div class="grid">
+    <div class="card" id="loginCard">
+      <div class="row"><input id="loginUser" placeholder="Логин" /></div>
+      <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
+      <button id="loginBtn">Войти</button>
+      <div class="error" id="loginError"></div>
+    </div>
 
-  <div class="card" id="loginCard">
-    <div class="row"><input id="loginUser" placeholder="Логин" /></div>
-    <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
-    <button id="loginBtn">Войти</button>
-    <div class="error" id="loginError"></div>
-  </div>
+    <div class="card" id="appCard" style="display:none;">
+      <div class="tabs" id="tabs">
+        <button class="tab active" id="tabUsers">Пользователи</button>
+        <button class="tab" id="tabCreate">Создать</button>
+      </div>
 
-  <div class="card" id="listCard" style="display:none;">
-    <h2>Список пользователей</h2>
-    <div id="users"></div>
-  </div>
+      <div id="listView">
+        <div class="toolbar">
+          <input id="searchInput" placeholder="Поиск по slug" />
+          <button id="refreshBtn">Обновить</button>
+        </div>
+        <div id="users"></div>
+      </div>
 
-  <div class="card" id="createCard" style="display:none;">
-    <h2>Создать пользователя</h2>
-    <div class="muted">Slug: только латиница, цифры, -, _ (3–32 символа)</div>
-    <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
-    <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
-    <button id="createBtn">Создать</button>
-    <div class="error" id="createError"></div>
+      <div id="createView" style="display:none;">
+        <div class="muted">Slug: латиница, цифры, -, _ (3–32 символа)</div>
+        <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
+        <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
+        <div class="toolbar">
+          <button id="generateBtn">Сгенерировать</button>
+          <button id="createBtn">Создать</button>
+        </div>
+        <div class="error" id="createError"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
   </div>
 
   <script>
     const loginCard = document.getElementById('loginCard');
-    const createCard = document.getElementById('createCard');
-    const listCard = document.getElementById('listCard');
-    const tabsEl = document.getElementById('tabs');
+    const appCard = document.getElementById('appCard');
+    const sessionPill = document.getElementById('sessionPill');
+
     const tabUsers = document.getElementById('tabUsers');
     const tabCreate = document.getElementById('tabCreate');
+    const listView = document.getElementById('listView');
+    const createView = document.getElementById('createView');
 
     const loginUser = document.getElementById('loginUser');
     const loginPass = document.getElementById('loginPass');
@@ -130,52 +201,87 @@
 
     const viewerSlug = document.getElementById('viewerSlug');
     const adminSlug = document.getElementById('adminSlug');
+    const generateBtn = document.getElementById('generateBtn');
     const createBtn = document.getElementById('createBtn');
     const createError = document.getElementById('createError');
 
     const usersEl = document.getElementById('users');
+    const searchInput = document.getElementById('searchInput');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const statusEl = document.getElementById('status');
 
-    function showPanels() {
+    let cachedUsers = [];
+
+    function setStatus(text) {
+      statusEl.textContent = text || '';
+    }
+
+    function showApp() {
       loginCard.style.display = 'none';
-      tabsEl.style.display = 'flex';
-      listCard.style.display = 'block';
-      createCard.style.display = 'none';
-      tabUsers.classList.add('active');
-      tabCreate.classList.remove('active');
+      appCard.style.display = 'block';
+      sessionPill.textContent = 'Сессия активна';
     }
 
     function switchToCreate() {
-      listCard.style.display = 'none';
-      createCard.style.display = 'block';
+      listView.style.display = 'none';
+      createView.style.display = 'block';
       tabUsers.classList.remove('active');
       tabCreate.classList.add('active');
     }
 
     function switchToUsers() {
-      listCard.style.display = 'block';
-      createCard.style.display = 'none';
+      listView.style.display = 'block';
+      createView.style.display = 'none';
       tabUsers.classList.add('active');
       tabCreate.classList.remove('active');
     }
 
-    async function loadUsers() {
-      const res = await fetch('/api/master/list-users');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.ok) return;
-
-      usersEl.innerHTML = '';
+    function renderUsers(list) {
       const origin = window.location.origin;
-      data.users.forEach(u => {
+      usersEl.innerHTML = '';
+      list.forEach(u => {
         const div = document.createElement('div');
         div.className = 'user';
         div.innerHTML = `
           <div><b>${u.id}</b></div>
-          <div class="muted">Viewer: ${origin}/u/${u.viewerSlug}</div>
-          <div class="muted">Admin: ${origin}/a/${u.adminSlug}</div>
+          <div class="links">
+            <div class="link-row">
+              <div class="muted">${origin}/u/${u.viewerSlug}</div>
+              <button class="copy-btn" data-copy="${origin}/u/${u.viewerSlug}">Копировать</button>
+            </div>
+            <div class="link-row">
+              <div class="muted">${origin}/a/${u.adminSlug}</div>
+              <button class="copy-btn" data-copy="${origin}/a/${u.adminSlug}">Копировать</button>
+            </div>
+          </div>
         `;
         usersEl.appendChild(div);
       });
+    }
+
+    function applySearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) return renderUsers(cachedUsers);
+      renderUsers(cachedUsers.filter(u =>
+        u.viewerSlug.toLowerCase().includes(q) || u.adminSlug.toLowerCase().includes(q)
+      ));
+    }
+
+    async function loadUsers() {
+      setStatus('Загружаю список...');
+      const res = await fetch('/api/master/list-users');
+      if (!res.ok) {
+        setStatus('Не удалось загрузить список');
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        setStatus('Не удалось загрузить список');
+        return;
+      }
+      cachedUsers = data.users || [];
+      applySearch();
+      setStatus(`Пользователей: ${cachedUsers.length}`);
     }
 
     async function doLogin() {
@@ -192,8 +298,14 @@
         loginError.textContent = 'Неверный логин или пароль';
         return;
       }
-      showPanels();
+      showApp();
+      switchToUsers();
       await loadUsers();
+    }
+
+    function randomSlug(base) {
+      const tail = Math.random().toString(36).slice(2, 6);
+      return `${base}-${tail}`;
     }
 
     async function createUser() {
@@ -217,20 +329,41 @@
       await loadUsers();
     }
 
+    usersEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.copy-btn');
+      if (!btn) return;
+      const text = btn.getAttribute('data-copy');
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('Ссылка скопирована');
+      } catch (err) {
+        setStatus('Не удалось скопировать');
+      }
+    });
+
     loginBtn.addEventListener('click', doLogin);
     loginPass.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') doLogin();
     });
 
     createBtn.addEventListener('click', createUser);
+    generateBtn.addEventListener('click', () => {
+      const base = viewerSlug.value.trim() || 'user';
+      viewerSlug.value = randomSlug(base);
+      adminSlug.value = randomSlug(base + '-admin');
+    });
+
     tabCreate.addEventListener('click', switchToCreate);
     tabUsers.addEventListener('click', switchToUsers);
+    refreshBtn.addEventListener('click', loadUsers);
+    searchInput.addEventListener('input', applySearch);
 
     // Пробуем авто-вход по cookie
     (async () => {
       const res = await fetch('/api/master/list-users');
       if (res.ok) {
-        showPanels();
+        showApp();
+        switchToUsers();
         await loadUsers();
       }
     })();
