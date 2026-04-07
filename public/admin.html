@@ -499,33 +499,45 @@
 
     async function sendCommand(count) {
       try {
-        const ok = await trySend(count);
-        if (ok) {
-          showNotice(`Отправлено: ${count}`);
-          return;
-        }
-
-        // Повторяем один раз, чтобы убрать ложные ошибки от сети/пробуждения сервера
-        await new Promise(r => setTimeout(r, 600));
-        const okRetry = await trySend(count);
-        if (okRetry) {
-          showNotice(`Отправлено: ${count}`);
-        } else {
-          showNotice('Ошибка отправки');
-        }
+        showNotice('Отправляю...');
+        await warmup();
+        const ok = await retrySend(count, [700, 900, 1200, 1600]);
+        if (ok) showNotice(`Отправлено: ${count}`);
+        else showNotice('Ошибка отправки');
       } catch (err) {
         showNotice('Ошибка отправки');
       }
     }
 
     async function trySend(count) {
-      const res = await fetch(`/api/a/${adminSlug}/command`, {
+      return fetchWithTimeout(`/api/a/${adminSlug}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ item: count }),
         cache: 'no-store'
-      });
-      return res.ok;
+      }, 4000).then(res => res.ok).catch(() => false);
+    }
+
+    async function retrySend(count, delays) {
+      for (let i = 0; i < delays.length; i++) {
+        const ok = await trySend(count);
+        if (ok) return true;
+        await new Promise(r => setTimeout(r, delays[i]));
+      }
+      return false;
+    }
+
+    async function warmup() {
+      // Пробуждаем сервер, если он спал
+      await fetchWithTimeout(`/api/a/${adminSlug}/getItems`, { cache: 'no-store' }, 2500)
+        .catch(() => null);
+    }
+
+    function fetchWithTimeout(url, options, timeoutMs) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      const opts = Object.assign({}, options, { signal: controller.signal });
+      return fetch(url, opts).finally(() => clearTimeout(id));
     }
 
     function finalizeSequence() {
