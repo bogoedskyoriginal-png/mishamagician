@@ -7,11 +7,8 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap');
     :root {
-      --bg: #0f0c0b;
       --panel: rgba(24, 19, 17, 0.92);
       --panel-2: rgba(31, 24, 22, 0.9);
-      --accent: #c6a36a;
-      --accent-2: #7bbca3;
       --text: #f4f1eb;
       --muted: #b0a79b;
       --line: rgba(198, 163, 106, 0.22);
@@ -325,7 +322,6 @@
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 1) return parsed;
       } catch (err) {
-        // ignore
       }
       return null;
     }
@@ -336,7 +332,6 @@
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
       } catch (err) {
-        // ignore
       }
       return [];
     }
@@ -356,7 +351,6 @@
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length >= 1) return data.items;
       } catch (err) {
-        // ignore
       }
       return null;
     }
@@ -372,7 +366,6 @@
             body: JSON.stringify({ items })
           });
         } catch (err) {
-          // ignore
         }
       }, 400);
     }
@@ -498,46 +491,36 @@
     }
 
     async function sendCommand(count) {
-      try {
-        showNotice('Отправляю...');
-        await warmup();
-        const ok = await retrySend(count, [700, 900, 1200, 1600]);
-        if (ok) showNotice(`Отправлено: ${count}`);
-        else showNotice('Ошибка отправки');
-      } catch (err) {
-        showNotice('Ошибка отправки');
-      }
+      showNotice('Отправляю...');
+      const ok = await sendWithRetry(count);
+      if (ok) showNotice(`Отправлено: ${count}`);
+      else showNotice('Ошибка сети, попробуйте ещё раз');
     }
 
-    async function trySend(count) {
-      return fetchWithTimeout(`/api/a/${adminSlug}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ item: count }),
-        cache: 'no-store'
-      }, 4000).then(res => res.ok).catch(() => false);
+    async function sendWithRetry(count) {
+      if (await trySend(count, 12000)) return true;
+      await new Promise(r => setTimeout(r, 800));
+      return trySend(count, 12000);
     }
 
-    async function retrySend(count, delays) {
-      for (let i = 0; i < delays.length; i++) {
-        const ok = await trySend(count);
-        if (ok) return true;
-        await new Promise(r => setTimeout(r, delays[i]));
-      }
-      return false;
-    }
-
-    async function warmup() {
-      // Пробуждаем сервер, если он спал
-      await fetchWithTimeout(`/api/a/${adminSlug}/getItems`, { cache: 'no-store' }, 2500)
-        .catch(() => null);
-    }
-
-    function fetchWithTimeout(url, options, timeoutMs) {
+    async function trySend(count, timeoutMs) {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeoutMs);
-      const opts = Object.assign({}, options, { signal: controller.signal });
-      return fetch(url, opts).finally(() => clearTimeout(id));
+      try {
+        const res = await fetch(`/api/a/${adminSlug}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item: count }),
+          cache: 'no-store',
+          keepalive: true,
+          signal: controller.signal
+        });
+        return res.ok;
+      } catch (err) {
+        return false;
+      } finally {
+        clearTimeout(id);
+      }
     }
 
     function finalizeSequence() {
@@ -669,7 +652,6 @@
       renderTemplates();
     });
 
-    // Drag & drop сортировка
     let dragIndex = null;
     inputsEl.addEventListener('dragstart', (e) => {
       const row = e.target.closest('.item-row');

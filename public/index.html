@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
-  <title>Магическое предсказание</title>
+  <title>Тишина</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='black'/%3E%3Ctext x='50%25' y='58%25' font-size='140' text-anchor='middle' fill='white' font-family='Arial'%3EM%3C/text%3E%3C/svg%3E" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='black'/%3E%3Ctext x='50%25' y='58%25' font-size='140' text-anchor='middle' fill='white' font-family='Arial'%3EM%3C/text%3E%3C/svg%3E" />
@@ -17,7 +17,7 @@
       height: 100%;
       background: #000;
       color: #fff;
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Tahoma, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -29,6 +29,7 @@
     .status {
       font-size: 22px;
       margin-bottom: 12px;
+      letter-spacing: 0.4px;
     }
     .error {
       font-size: 14px;
@@ -77,8 +78,9 @@
         const res = await fetch(`/api/u/${viewerSlug}/getItems`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Не удалось получить список');
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length === 5) {
-          items = data.items.map((v, i) => String(v || items[i]));
+        if (Array.isArray(data.items) && data.items.length >= 1) {
+          items = data.items.map((v, i) => String(v || items[i] || '').trim()).filter(Boolean);
+          if (items.length === 0) items = ["Чашка"];
         }
       } catch (err) {
         // Ошибка сети — остаёмся на дефолтном списке
@@ -91,8 +93,11 @@
         if (!res.ok) throw new Error('Сервер недоступен');
         const data = await res.json();
 
-        if (typeof data.item === 'number' && data.item >= 1 && data.item <= 5) {
-          const index = data.item - 1;
+        if (typeof data.item === 'number' && data.item >= 1) {
+          // Перед редиректом подтягиваем свежие предметы, чтобы не было устаревших названий
+          await loadItems();
+          const max = Math.max(1, items.length);
+          const index = Math.min(max, data.item) - 1;
           clearInterval(pollTimer);
           clearTimeout(timeoutTimer);
           redirectToItem(index);

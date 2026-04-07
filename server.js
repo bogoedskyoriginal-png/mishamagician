@@ -10,6 +10,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 const DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
+const MAX_ITEMS = 20;
 
 // Простое хранение сессий в памяти (для теста)
 const masterSessions = new Set(); // token
@@ -83,6 +84,15 @@ function isValidSlug(s) {
   return typeof s === 'string' && /^[a-zA-Z0-9_-]{3,32}$/.test(s);
 }
 
+function normalizeItems(list) {
+  if (!Array.isArray(list)) return null;
+  const trimmed = list
+    .map((v) => String(v || '').trim())
+    .filter((v) => v.length > 0);
+  if (trimmed.length < 1) return null;
+  return trimmed.slice(0, MAX_ITEMS);
+}
+
 function parseCookies(req) {
   const header = req.headers.cookie || '';
   const pairs = header.split(';').map(v => v.trim()).filter(Boolean);
@@ -126,7 +136,13 @@ app.get('/master', (req, res) => {
 // ===== API: viewer =====
 app.get('/api/u/:viewerSlug/getItem', (req, res) => {
   const user = getUserByViewerSlug(req.params.viewerSlug) || store.users.default;
-  res.json({ item: user ? user.lastItem : null });
+  const item = user ? user.lastItem : null;
+  // Одноразовое потребление команды, чтобы избежать старых предсказаний
+  if (user && item !== null) {
+    user.lastItem = null;
+    saveUsers(store);
+  }
+  res.json({ item });
 });
 
 app.get('/api/u/:viewerSlug/getItems', (req, res) => {
@@ -140,10 +156,12 @@ app.post('/api/a/:adminSlug/command', (req, res) => {
   const user = store.users[userId];
   if (!user) return res.status(404).json({ ok: false });
 
-  const item = Number(req.body && req.body.item);
-  if (!Number.isInteger(item) || item < 1 || item > 5) {
-    return res.status(400).json({ ok: false, error: 'item должен быть от 1 до 5' });
+  let item = Number(req.body && req.body.item);
+  const max = Array.isArray(user.items) && user.items.length > 0 ? user.items.length : DEFAULT_ITEMS.length;
+  if (!Number.isInteger(item) || item < 1) {
+    return res.status(400).json({ ok: false, error: `item должен быть от 1 до ${max}` });
   }
+  if (item > max) item = max;
   user.lastItem = item;
   saveUsers(store);
   res.json({ ok: true });
@@ -172,11 +190,11 @@ app.post('/api/a/:adminSlug/setItems', (req, res) => {
   const user = store.users[userId];
   if (!user) return res.status(404).json({ ok: false });
 
-  const next = req.body && req.body.items;
-  if (!Array.isArray(next) || next.length !== 5) {
-    return res.status(400).json({ ok: false, error: 'Нужно 5 предметов' });
+  const next = normalizeItems(req.body && req.body.items);
+  if (!next) {
+    return res.status(400).json({ ok: false, error: 'Нужно минимум 1 предмет' });
   }
-  user.items = next.map((v, i) => String(v || DEFAULT_ITEMS[i]).trim() || DEFAULT_ITEMS[i]);
+  user.items = next;
   saveUsers(store);
   res.json({ ok: true });
 });
