@@ -37,6 +37,7 @@ function loadUsers($file, $defaultItems, $masterUser, $masterPass) {
           'adminSlug' => 'default',
           'items' => $defaultItems,
           'lastItem' => null,
+          'lastItemAt' => 0,
         ],
       ],
     ];
@@ -160,6 +161,16 @@ function generateSlug($length, $generatedSet, $store, $reserved) {
 
 ensureDataDir($DATA_DIR);
 $store = loadUsers($USERS_FILE, $DEFAULT_ITEMS, $MASTER_USER, $MASTER_PASS);
+$changed = false;
+foreach ($store['users'] as $uid => $u) {
+  if (!isset($store['users'][$uid]['lastItemAt'])) {
+    $store['users'][$uid]['lastItemAt'] = 0;
+    $changed = true;
+  }
+}
+if ($changed) {
+  saveUsers($USERS_FILE, $store);
+}
 $generated = loadGenerated($GENERATED_FILE, $store);
 saveGenerated($GENERATED_FILE, $generated);
 
@@ -180,6 +191,10 @@ switch ($action) {
     $user = getUserByViewerSlug($store, $slug);
     if (!$user) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Slug not found']); break; }
     $item = $user ? $user['lastItem'] : null;
+    $itemAt = $user && isset($user['lastItemAt']) ? (int)$user['lastItemAt'] : 0;
+    if ($item !== null && $itemAt <= 0) {
+      $item = null;
+    }
     if ($user && $item !== null) {
       $id = null;
       foreach ($store['users'] as $uid => $u) {
@@ -187,6 +202,16 @@ switch ($action) {
       }
       if ($id !== null) {
         $store['users'][$id]['lastItem'] = null;
+        $store['users'][$id]['lastItemAt'] = 0;
+        saveUsers($USERS_FILE, $store);
+      }
+    } elseif ($user && $item === null) {
+      $id = null;
+      foreach ($store['users'] as $uid => $u) {
+        if ($u['viewerSlug'] === $user['viewerSlug']) { $id = $uid; break; }
+      }
+      if ($id !== null && (!isset($store['users'][$id]['lastItemAt']) || $store['users'][$id]['lastItemAt'] > 0)) {
+        $store['users'][$id]['lastItemAt'] = 0;
         saveUsers($USERS_FILE, $store);
       }
     }
@@ -211,6 +236,7 @@ switch ($action) {
     if ($item < 1) { http_response_code(400); echo json_encode(['ok' => false, 'error' => "item должен быть от 1 до $max"]); break; }
     if ($item > $max) $item = $max;
     $store['users'][$userId]['lastItem'] = $item;
+    $store['users'][$userId]['lastItemAt'] = time();
     saveUsers($USERS_FILE, $store);
     echo json_encode(['ok' => true]);
     break;
@@ -220,6 +246,7 @@ switch ($action) {
     $userId = getUserIdByAdminSlug($store, $slug);
     if ($userId === null) { http_response_code(404); echo json_encode(['ok' => false]); break; }
     $store['users'][$userId]['lastItem'] = null;
+    $store['users'][$userId]['lastItemAt'] = 0;
     saveUsers($USERS_FILE, $store);
     echo json_encode(['ok' => true]);
     break;
@@ -279,6 +306,7 @@ switch ($action) {
       'adminSlug' => $viewerSlug,
       'items' => $DEFAULT_ITEMS,
       'lastItem' => null,
+      'lastItemAt' => 0,
     ];
     $generated[$viewerSlug] = true;
     saveUsers($USERS_FILE, $store);
