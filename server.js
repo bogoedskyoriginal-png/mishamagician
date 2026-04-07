@@ -125,6 +125,16 @@ app.get('/u/:viewerSlug', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ЧПУ для зрителя: https://domain.com/SLUG (без /u/)
+app.get('/:viewerSlug', (req, res, next) => {
+  const slug = req.params.viewerSlug;
+  // Резервируем системные пути
+  if (slug === 'a' || slug === 'master' || slug === 'admin.html' || slug === 'index.html' || slug === 'u') {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/a/:adminSlug', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });

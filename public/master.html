@@ -237,8 +237,8 @@
       <div id="createView" class="section" style="display:none;">
         <div class="section-title">Создание</div>
         <div class="muted">Введите ID для ссылки (латиница, цифры, -, _; 3–32 символа)</div>
-        <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
-        <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
+        <input id="viewerSlug" placeholder="Ссылка в телефон зрителя (например: alex)" />
+        <input id="adminSlug" placeholder="Ссылка фокусника (например: alex-admin)" />
         <div class="toolbar">
           <button id="generateBtn">Сгенерировать</button>
           <button id="createBtn" class="btn-primary">Создать</button>
@@ -326,8 +326,8 @@
           <div><b>${u.id}</b></div>
           <div class="links">
             <div class="link-row">
-              <div class="muted">${origin}/u/${u.viewerSlug}</div>
-              <button class="copy-btn" data-copy="${origin}/u/${u.viewerSlug}">Копировать</button>
+              <div class="muted">${origin}/${u.viewerSlug}</div>
+              <button class="copy-btn" data-copy="${origin}/${u.viewerSlug}">Копировать</button>
             </div>
             <div class="link-row">
               <div class="muted">${origin}/a/${u.adminSlug}</div>
