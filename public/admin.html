@@ -499,16 +499,33 @@
 
     async function sendCommand(count) {
       try {
-        const res = await fetch(`/api/a/${adminSlug}/command`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ item: count })
-        });
-        if (!res.ok) throw new Error('Ошибка сервера');
-        showNotice(`Отправлено: ${count}`);
+        const ok = await trySend(count);
+        if (ok) {
+          showNotice(`Отправлено: ${count}`);
+          return;
+        }
+
+        // Повторяем один раз, чтобы убрать ложные ошибки от сети/пробуждения сервера
+        await new Promise(r => setTimeout(r, 600));
+        const okRetry = await trySend(count);
+        if (okRetry) {
+          showNotice(`Отправлено: ${count}`);
+        } else {
+          showNotice('Ошибка отправки');
+        }
       } catch (err) {
         showNotice('Ошибка отправки');
       }
+    }
+
+    async function trySend(count) {
+      const res = await fetch(`/api/a/${adminSlug}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item: count }),
+        cache: 'no-store'
+      });
+      return res.ok;
     }
 
     function finalizeSequence() {
