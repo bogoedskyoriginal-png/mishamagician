@@ -183,6 +183,26 @@
       opacity: 1;
       transform: translateX(-50%) translateY(-6px);
     }
+
+    .section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid #ffffff;
+    }
+
+    .section-title {
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+      border: 2px solid #ffffff;
+    }
   </style>
 </head>
 <body>
@@ -195,7 +215,7 @@
     <div class="card" id="loginCard">
       <div class="row"><input id="loginUser" placeholder="Логин" /></div>
       <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
-      <button id="loginBtn">Войти</button>
+      <button id="loginBtn" class="btn-primary">Войти</button>
       <div class="error" id="loginError"></div>
     </div>
 
@@ -205,21 +225,23 @@
         <button class="tab" id="tabCreate">Создать нового</button>
       </div>
 
-      <div id="listView">
+      <div id="listView" class="section">
+        <div class="section-title">Список</div>
         <div class="toolbar">
           <input id="searchInput" placeholder="Поиск по slug" />
-          <button id="refreshBtn">Обновить</button>
+          <button id="refreshBtn" class="btn-primary">Обновить</button>
         </div>
         <div id="users"></div>
       </div>
 
-      <div id="createView" style="display:none;">
+      <div id="createView" class="section" style="display:none;">
+        <div class="section-title">Создание</div>
         <div class="muted">Slug: латиница, цифры, -, _ (3–32 символа)</div>
         <input id="viewerSlug" placeholder="Viewer slug (например: alex)" />
         <input id="adminSlug" placeholder="Admin slug (например: alex-admin)" />
         <div class="toolbar">
           <button id="generateBtn">Сгенерировать</button>
-          <button id="createBtn">Создать</button>
+          <button id="createBtn" class="btn-primary">Создать</button>
         </div>
         <div class="error" id="createError"></div>
       </div>
