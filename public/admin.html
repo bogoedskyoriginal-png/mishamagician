@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Тишина — Админ</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap');
@@ -40,7 +40,7 @@
       font-size: 16px;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: manipulation;
+      touch-action: none;
       z-index: 1;
     }
 
@@ -473,13 +473,15 @@
 
     // Логика: удержание 2 сек для активации, затем тапы с интервалом <= 1 сек
     const ACTIVATE_HOLD_MS = 2000;
-    const TAP_GAP_MS = 1000;
+    const TAP_GAP_MS = 2500;
 
     let holdTimer = null;
     let tapTimer = null;
     let tapCount = 0;
     let isDown = false;
     let armed = false;
+    let justArmed = false;
+    let lastTapTs = 0;
 
     function resetSequence(msg) {
       tapCount = 0;
@@ -540,25 +542,24 @@
         holdTimer = setTimeout(() => {
           if (!isDown) return;
           armed = true;
+          justArmed = true;
           padEl.classList.add('armed');
           showNotice('Активировано. Тапните 1–N раз');
         }, ACTIVATE_HOLD_MS);
       }
     });
 
-    padEl.addEventListener('pointerup', () => {
-      isDown = false;
-      if (holdTimer) clearTimeout(holdTimer);
-    });
+    function handleTapEvent() {
+      const now = Date.now();
+      if (now - lastTapTs < 200) return; // защита от двойных событий
+      lastTapTs = now;
 
-    padEl.addEventListener('pointerleave', () => {
-      isDown = false;
-      if (holdTimer) clearTimeout(holdTimer);
-    });
-
-    padEl.addEventListener('click', () => {
       if (settingsEl.classList.contains('open')) return;
       if (!armed) return;
+      if (justArmed) {
+        justArmed = false;
+        return;
+      }
 
       const max = Math.max(1, currentItems.length || 1);
       if (tapCount < max) {
@@ -567,9 +568,33 @@
 
       showNotice(`Тапов: ${tapCount}`);
 
+      if (tapCount >= max) {
+        finalizeSequence();
+        return;
+      }
       if (tapTimer) clearTimeout(tapTimer);
       tapTimer = setTimeout(finalizeSequence, TAP_GAP_MS);
+    }
+
+    padEl.addEventListener('pointerup', () => {
+      isDown = false;
+      if (holdTimer) clearTimeout(holdTimer);
+      handleTapEvent();
     });
+
+    padEl.addEventListener('pointerleave', () => {
+      isDown = false;
+      if (holdTimer) clearTimeout(holdTimer);
+    });
+
+    // Надёжный fallback для iOS (touch-события)
+    padEl.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isDown = false;
+      if (holdTimer) clearTimeout(holdTimer);
+      handleTapEvent();
+    }, { passive: false });
+
 
     settingsBtn.addEventListener('click', () => {
       settingsEl.classList.add('open');
