@@ -150,6 +150,7 @@
       background: var(--panel-2);
       color: var(--text);
       font-size: 13px;
+      cursor: pointer;
     }
 
     .settings-tab.active {
@@ -195,6 +196,7 @@
       background: rgba(24, 18, 16, 0.7);
       color: #ffb3b3;
       font-size: 18px;
+      cursor: pointer;
     }
 
     .add-btn {
@@ -206,6 +208,7 @@
       color: var(--muted);
       font-size: 16px;
       letter-spacing: 1px;
+      cursor: pointer;
     }
     .add-btn:hover { border-color: rgba(198, 163, 106, 0.55); color: var(--text); }
 
@@ -245,6 +248,7 @@
       background: #2a201b;
       color: var(--text);
       font-size: 12px;
+      cursor: pointer;
     }
 
     body.settings-open .pad { pointer-events: none; }
@@ -321,7 +325,7 @@
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 1) return parsed;
       } catch (err) {
-        // Если данные битые — используем дефолт
+        // ignore
       }
       return null;
     }
@@ -352,7 +356,7 @@
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length >= 1) return data.items;
       } catch (err) {
-        // Игнорируем
+        // ignore
       }
       return null;
     }
@@ -368,7 +372,7 @@
             body: JSON.stringify({ items })
           });
         } catch (err) {
-          // Если сеть упала — не критично
+          // ignore
         }
       }, 400);
     }
@@ -414,9 +418,7 @@
     }
 
     function updateItemsList(items) {
-      const preview = items
-        .map((v, i) => `${i + 1}: <b>${v}</b>`)
-        .join(' · ');
+      const preview = items.map((v, i) => `${i + 1}: <b>${v}</b>`).join(' · ');
       itemsListEl.innerHTML = preview;
     }
 
@@ -425,15 +427,47 @@
       templatesListEl.innerHTML = '';
 
       if (list.length === 0) {
-        templatesListEl.innerHTML = '<div class=\"items-list\">Шаблонов пока нет</div>';
+        const empty = document.createElement('div');
+        empty.className = 'items-list';
+        empty.textContent = 'Шаблонов пока нет';
+        templatesListEl.appendChild(empty);
         return;
       }
 
       list.forEach((t, idx) => {
         const card = document.createElement('div');
         card.className = 'template-card';
-        const preview = t.items.map((v, i) => `${i + 1}. ${v}`).join(' · ');
-        card.innerHTML = `\n          <div class=\"template-title\">Шаблон ${idx + 1}</div>\n          <div class=\"items-list\">${preview}</div>\n          <div class=\"template-actions\">\n            <button class=\"template-btn\" data-apply=\"${idx}\">Применить</button>\n            <button class=\"template-btn\" data-delete=\"${idx}\">Удалить</button>\n          </div>\n        `;\n        templatesListEl.appendChild(card);\n      });\n    }
+
+        const title = document.createElement('div');
+        title.className = 'template-title';
+        title.textContent = `Шаблон ${idx + 1}`;
+
+        const preview = document.createElement('div');
+        preview.className = 'items-list';
+        preview.textContent = t.items.map((v, i) => `${i + 1}. ${v}`).join(' · ');
+
+        const actions = document.createElement('div');
+        actions.className = 'template-actions';
+
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'template-btn';
+        applyBtn.textContent = 'Применить';
+        applyBtn.dataset.apply = String(idx);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'template-btn';
+        delBtn.textContent = 'Удалить';
+        delBtn.dataset.delete = String(idx);
+
+        actions.appendChild(applyBtn);
+        actions.appendChild(delBtn);
+
+        card.appendChild(title);
+        card.appendChild(preview);
+        card.appendChild(actions);
+        templatesListEl.appendChild(card);
+      });
+    }
 
     let noticeTimer = null;
     function showNotice(text) {
