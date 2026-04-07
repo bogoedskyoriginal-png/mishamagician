@@ -38,7 +38,7 @@ function loadUsers() {
   ensureDataDir();
   if (!fs.existsSync(USERS_FILE)) {
     const initial = {
-      master: { username: 'master', password: 'master123' },
+      master: { username: 'nerycrp', password: '0f73AdZzDqZZp' },
       users: {
         default: {
           viewerSlug: 'default',
@@ -55,9 +55,15 @@ function loadUsers() {
     const raw = fs.readFileSync(USERS_FILE, 'utf8');
     const parsed = JSON.parse(raw);
     if (!parsed.users) parsed.users = {};
+    if (!parsed.master) parsed.master = { username: 'nerycrp', password: '0f73AdZzDqZZp' };
+    if (parsed.master.username === 'master' && parsed.master.password === 'master123') {
+      parsed.master.username = 'nerycrp';
+      parsed.master.password = '0f73AdZzDqZZp';
+      fs.writeFileSync(USERS_FILE, JSON.stringify(parsed, null, 2));
+    }
     return parsed;
   } catch (err) {
-    return { master: { username: 'master', password: 'master123' }, users: {} };
+    return { master: { username: 'nerycrp', password: '0f73AdZzDqZZp' }, users: {} };
   }
 }
 
@@ -210,7 +216,10 @@ app.get('/a/:adminSlug', (req, res) => {
 });
 
 app.get('/master', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'master.html'));
+  res.sendFile(path.join(__dirname, 'public', 'crp.html'));
+});
+app.get('/crp', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'crp.html'));
 });
 
 // ===== API: viewer =====

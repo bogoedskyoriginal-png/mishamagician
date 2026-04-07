@@ -1,0 +1,502 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Импульс</title>
+  <style>
+    @font-face {
+      font-family: 'Open Sans Local';
+      src: url('/fonts/OpenSans.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Open Sans Local';
+      src: url('/fonts/OpenSans.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    :root {
+      --panel: #0a0a0a;
+      --panel-2: #111111;
+      --text: #ffffff;
+      --muted: #d0d0d0;
+      --line: #ffffff;
+      --danger: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #000000;
+      color: var(--text);
+      font-family: "Open Sans Local", "Open Sans", "Segoe UI", Tahoma, sans-serif;
+      padding: 18px;
+      letter-spacing: 0.2px;
+    }
+    button, input, select, .tab, .pill { transition: all 160ms ease; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.8px;
+      font-family: "Open Sans Local", "Open Sans", "Segoe UI", Tahoma, sans-serif;
+      font-weight: 700;
+    }
+    .pill {
+      padding: 6px 10px;
+      border: 2px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #000000;
+      backdrop-filter: blur(6px);
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    .card {
+      background: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: #000000;
+      color: var(--text);
+      font-size: 14px;
+      position: relative;
+    }
+    .tab.active {
+      background: #000000;
+      border-color: #ffffff;
+      box-shadow: inset 0 0 0 1px #ffffff;
+    }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      opacity: 0.08;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .row { margin-bottom: 8px; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: #000000;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: #000000;
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    .muted { color: var(--muted); font-size: 12px; }
+    .error { color: var(--danger); font-size: 12px; min-height: 14px; }
+    .toolbar {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+      margin-bottom: 8px;
+    }
+    .user {
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .user-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .links { display: grid; gap: 6px; margin-top: 6px; }
+    .link-row {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+    .copy-btn {
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: #000000;
+      font-size: 12px;
+      width: auto;
+    }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: #000000;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+
+    .section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid #ffffff;
+    }
+
+    .section-title {
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+      border: 2px solid #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Импульс</h1>
+    <div class="pill" id="sessionPill">Гость</div>
+  </header>
+
+  <div class="grid">
+    <div class="card" id="loginCard">
+      <div class="row"><input id="loginUser" placeholder="Логин" /></div>
+      <div class="row"><input id="loginPass" type="password" placeholder="Пароль" /></div>
+      <button id="loginBtn" class="btn-primary">Войти</button>
+      <div class="error" id="loginError"></div>
+    </div>
+
+    <div class="card" id="appCard" style="display:none;">
+      <div class="tabs" id="tabs">
+        <button class="tab active" id="tabUsers">Пользователи</button>
+        <button class="tab" id="tabCreate">Создать нового</button>
+      </div>
+
+      <div id="listView" class="section">
+        <div class="section-title">Список</div>
+        <div class="toolbar">
+          <input id="searchInput" placeholder="Поиск по slug" />
+          <button id="refreshBtn" class="btn-primary">Обновить</button>
+        </div>
+        <div id="users"></div>
+      </div>
+
+      <div id="createView" class="section" style="display:none;">
+        <div class="section-title">Создание</div>
+        <div class="muted">Введите ID для ссылки (латиница, цифры, -, _; 1–32 символа)</div>
+        <input id="viewerSlug" placeholder="Ссылка в телефон зрителя (например: alex)" />
+        <div class="toolbar">
+          <button id="generateBtn">Сгенерировать</button>
+          <button id="createBtn" class="btn-primary">Создать</button>
+        </div>
+        <div class="error" id="createError"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const loginCard = document.getElementById('loginCard');
+    const appCard = document.getElementById('appCard');
+    const sessionPill = document.getElementById('sessionPill');
+
+    const tabUsers = document.getElementById('tabUsers');
+    const tabCreate = document.getElementById('tabCreate');
+    const listView = document.getElementById('listView');
+    const createView = document.getElementById('createView');
+
+    const loginUser = document.getElementById('loginUser');
+    const loginPass = document.getElementById('loginPass');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+
+    const viewerSlug = document.getElementById('viewerSlug');
+    const generateBtn = document.getElementById('generateBtn');
+    const createBtn = document.getElementById('createBtn');
+    const createError = document.getElementById('createError');
+
+    const usersEl = document.getElementById('users');
+    const searchInput = document.getElementById('searchInput');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const statusEl = document.getElementById('status');
+    const toastEl = document.getElementById('toast');
+
+    let cachedUsers = [];
+
+    function setStatus(text) {
+      statusEl.textContent = text || '';
+    }
+
+    let toastTimer = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 1200);
+    }
+
+    function showApp() {
+      loginCard.style.display = 'none';
+      appCard.style.display = 'block';
+      sessionPill.textContent = 'Сессия активна';
+    }
+
+    function switchToCreate() {
+      listView.style.display = 'none';
+      createView.style.display = 'block';
+      tabUsers.classList.remove('active');
+      tabCreate.classList.add('active');
+      showToast('Создание пользователя');
+    }
+
+    function switchToUsers() {
+      listView.style.display = 'block';
+      createView.style.display = 'none';
+      tabUsers.classList.add('active');
+      tabCreate.classList.remove('active');
+      showToast('Список пользователей');
+    }
+
+    function renderUsers(list) {
+      const origin = window.location.origin;
+      usersEl.innerHTML = '';
+      list.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user';
+        div.innerHTML = `
+          <div class="user-head">
+            <div><b>${u.id}</b></div>
+            <button class="copy-btn" data-delete="${u.id}">Удалить</button>
+          </div>
+          <div class="links">
+            <div class="link-row">
+              <div class="muted">${origin}/${u.viewerSlug}</div>
+              <button class="copy-btn" data-copy="${origin}/${u.viewerSlug}">Копировать</button>
+            </div>
+            <div class="link-row">
+              <div class="muted">${origin}/a/${u.adminSlug}</div>
+              <button class="copy-btn" data-copy="${origin}/a/${u.adminSlug}">Копировать</button>
+            </div>
+          </div>
+        `;
+        usersEl.appendChild(div);
+      });
+    }
+
+    function applySearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) return renderUsers(cachedUsers);
+      renderUsers(cachedUsers.filter(u =>
+        u.viewerSlug.toLowerCase().includes(q) || u.adminSlug.toLowerCase().includes(q)
+      ));
+    }
+
+    async function loadUsers() {
+      setStatus('Загружаю список...');
+      const res = await fetch('/api.php?action=master_list_users');
+      if (!res.ok) {
+        setStatus('Не удалось загрузить список');
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        setStatus('Не удалось загрузить список');
+        return;
+      }
+      cachedUsers = data.users || [];
+      applySearch();
+      setStatus(`Пользователей: ${cachedUsers.length}`);
+    }
+
+    async function doLogin() {
+      loginError.textContent = '';
+      const res = await fetch('/api.php?action=master_login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: loginUser.value.trim(),
+          password: loginPass.value
+        })
+      });
+      if (!res.ok) {
+        loginError.textContent = 'Неверный логин или пароль';
+        return;
+      }
+      showApp();
+      switchToUsers();
+      await loadUsers();
+    }
+
+    async function requestSlug() {
+      const res = await fetch('/api.php?action=master_generate_slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data && data.error ? data.error : 'Ошибка генерации');
+      }
+      return data.slug;
+    }
+
+    async function createUser() {
+      createError.textContent = '';
+      viewerSlug.value = viewerSlug.value.trim().toLowerCase();
+      const res = await fetch('/api.php?action=master_create_user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          viewerSlug: viewerSlug.value.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        createError.textContent = (data && data.error) ? data.error : 'Ошибка';
+        return;
+      }
+      viewerSlug.value = '';
+      adminSlug.value = '';
+      switchToUsers();
+      showToast('Пользователь создан');
+      await loadUsers();
+    }
+
+    usersEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.copy-btn');
+      if (!btn) return;
+      const delId = btn.getAttribute('data-delete');
+      if (delId) {
+        if (delId === 'default') {
+          showToast('Нельзя удалить default');
+          return;
+        }
+        const ok = confirm(`Удалить пользователя ${delId}?`);
+        if (!ok) return;
+        try {
+          const res = await fetch('/api.php?action=master_delete_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: delId })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            showToast('Ошибка удаления');
+            return;
+          }
+          showToast('Пользователь удалён');
+          await loadUsers();
+        } catch (err) {
+          showToast('Ошибка удаления');
+        }
+        return;
+      }
+      const text = btn.getAttribute('data-copy');
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('Ссылка скопирована');
+        showToast('Ссылка скопирована');
+      } catch (err) {
+        setStatus('Не удалось скопировать');
+        showToast('Не удалось скопировать');
+      }
+    });
+
+    loginBtn.addEventListener('click', doLogin);
+    loginPass.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    createBtn.addEventListener('click', createUser);
+    generateBtn.addEventListener('click', async () => {
+      createError.textContent = '';
+      try {
+        const v = await requestSlug();
+        viewerSlug.value = v;
+        showToast('ID сгенерирован');
+      } catch (err) {
+        createError.textContent = err.message || 'Ошибка генерации';
+      }
+    });
+
+    tabCreate.addEventListener('click', switchToCreate);
+    tabUsers.addEventListener('click', switchToUsers);
+    refreshBtn.addEventListener('click', loadUsers);
+    searchInput.addEventListener('input', applySearch);
+
+    // Пробуем авто-вход по cookie
+    (async () => {
+      const res = await fetch('/api.php?action=master_list_users');
+      if (res.ok) {
+        showApp();
+        switchToUsers();
+        await loadUsers();
+      }
+    })();
+  </script>
+</body>
+</html>

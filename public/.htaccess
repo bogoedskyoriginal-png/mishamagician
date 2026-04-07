@@ -7,7 +7,8 @@ RewriteRule ^api\.php$ - [L]
 RewriteRule ^a/([A-Za-z0-9_-]{1,32})$ admin.html [L,QSA]
 
 # Master admin
-RewriteRule ^master$ master.html [L,QSA]
+RewriteRule ^crp$ crp.html [L,QSA]
+RewriteRule ^master$ crp.html [L,QSA]
 
 # Viewer root
 RewriteRule ^$ index.html [L,QSA]

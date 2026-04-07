@@ -18,6 +18,8 @@ $GENERATED_FILE = $DATA_DIR . '/generated.json';
 $DEFAULT_ITEMS = ["Чашка", "Ключи", "Телефон", "Ручка", "Монета"];
 $MAX_ITEMS = 20;
 $RESERVED_SLUGS = ['a', 'master', 'admin.html', 'index.html', 'u'];
+$MASTER_USER = 'nerycrp';
+$MASTER_PASS = '0f73AdZzDqZZp';
 
 function ensureDataDir($dir) {
   if (!is_dir($dir)) {
@@ -25,10 +27,10 @@ function ensureDataDir($dir) {
   }
 }
 
-function loadUsers($file, $defaultItems) {
+function loadUsers($file, $defaultItems, $masterUser, $masterPass) {
   if (!file_exists($file)) {
     $initial = [
-      'master' => ['username' => 'master', 'password' => 'master123'],
+      'master' => ['username' => $masterUser, 'password' => $masterPass],
       'users' => [
         'default' => [
           'viewerSlug' => 'default',
@@ -44,10 +46,21 @@ function loadUsers($file, $defaultItems) {
   $raw = file_get_contents($file);
   $parsed = json_decode($raw, true);
   if (!is_array($parsed)) {
-    return ['master' => ['username' => 'master', 'password' => 'master123'], 'users' => []];
+    return ['master' => ['username' => $masterUser, 'password' => $masterPass], 'users' => []];
   }
   if (!isset($parsed['users']) || !is_array($parsed['users'])) {
     $parsed['users'] = [];
+  }
+  if (!isset($parsed['master']) || !is_array($parsed['master'])) {
+    $parsed['master'] = ['username' => $masterUser, 'password' => $masterPass];
+  } else {
+    $oldUser = $parsed['master']['username'] ?? '';
+    $oldPass = $parsed['master']['password'] ?? '';
+    if ($oldUser === 'master' && $oldPass === 'master123') {
+      $parsed['master']['username'] = $masterUser;
+      $parsed['master']['password'] = $masterPass;
+      saveUsers($file, $parsed);
+    }
   }
   return $parsed;
 }
@@ -146,7 +159,7 @@ function generateSlug($length, $generatedSet, $store, $reserved) {
 }
 
 ensureDataDir($DATA_DIR);
-$store = loadUsers($USERS_FILE, $DEFAULT_ITEMS);
+$store = loadUsers($USERS_FILE, $DEFAULT_ITEMS, $MASTER_USER, $MASTER_PASS);
 $generated = loadGenerated($GENERATED_FILE, $store);
 saveGenerated($GENERATED_FILE, $generated);
 
@@ -165,7 +178,7 @@ switch ($action) {
   case 'viewer_get_item': {
     $slug = strtolower(trim((string)($_GET['viewerSlug'] ?? 'default')));
     $user = getUserByViewerSlug($store, $slug);
-    if (!$user && isset($store['users']['default'])) $user = $store['users']['default'];
+    if (!$user) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Slug not found']); break; }
     $item = $user ? $user['lastItem'] : null;
     if ($user && $item !== null) {
       $id = null;
@@ -183,8 +196,8 @@ switch ($action) {
   case 'viewer_get_items': {
     $slug = strtolower(trim((string)($_GET['viewerSlug'] ?? 'default')));
     $user = getUserByViewerSlug($store, $slug);
-    if (!$user && isset($store['users']['default'])) $user = $store['users']['default'];
-    $items = $user ? $user['items'] : $DEFAULT_ITEMS;
+    if (!$user) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Slug not found']); break; }
+    $items = $user['items'];
     echo json_encode(['items' => $items]);
     break;
   }
@@ -271,6 +284,16 @@ switch ($action) {
     saveUsers($USERS_FILE, $store);
     saveGenerated($GENERATED_FILE, $generated);
     echo json_encode(['ok' => true, 'userId' => $viewerSlug]);
+    break;
+  }
+  case 'master_delete_user': {
+    requireMaster();
+    $id = strtolower(trim((string)($body['id'] ?? '')));
+    if ($id === '' || !isset($store['users'][$id])) { http_response_code(404); echo json_encode(['ok' => false]); break; }
+    if ($id === 'default') { http_response_code(400); echo json_encode(['ok' => false, 'error' => 'Нельзя удалить default']); break; }
+    unset($store['users'][$id]);
+    saveUsers($USERS_FILE, $store);
+    echo json_encode(['ok' => true]);
     break;
   }
   case 'master_generate_slug': {
