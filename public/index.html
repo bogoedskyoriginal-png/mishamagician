@@ -54,7 +54,6 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="status">Ожидание предсказания...</div>
     <div id="error" class="error"></div>
   </div>
 
@@ -144,7 +143,14 @@
     }, 500);
 
     // Таймаут убран: зритель ждёт бесконечно.
-    loadItems().then(poll);
+    async function initViewer() {
+      try {
+        await fetch(`/api.php?action=viewer_init&viewerSlug=${encodeURIComponent(viewerSlug)}`, { cache: 'no-store' });
+      } catch (err) {
+      }
+    }
+
+    initViewer().then(() => loadItems().then(poll));
   </script>
 </body>
 </html>

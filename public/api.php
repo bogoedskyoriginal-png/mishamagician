@@ -218,6 +218,22 @@ switch ($action) {
     echo json_encode(['item' => $item]);
     break;
   }
+  case 'viewer_init': {
+    $slug = strtolower(trim((string)($_GET['viewerSlug'] ?? 'default')));
+    $user = getUserByViewerSlug($store, $slug);
+    if (!$user) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'Slug not found']); break; }
+    $id = null;
+    foreach ($store['users'] as $uid => $u) {
+      if ($u['viewerSlug'] === $user['viewerSlug']) { $id = $uid; break; }
+    }
+    if ($id !== null) {
+      $store['users'][$id]['lastItem'] = null;
+      $store['users'][$id]['lastItemAt'] = 0;
+      saveUsers($USERS_FILE, $store);
+    }
+    echo json_encode(['ok' => true]);
+    break;
+  }
   case 'viewer_get_items': {
     $slug = strtolower(trim((string)($_GET['viewerSlug'] ?? 'default')));
     $user = getUserByViewerSlug($store, $slug);
