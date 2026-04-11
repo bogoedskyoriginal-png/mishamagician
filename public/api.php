@@ -335,7 +335,22 @@ switch ($action) {
     $id = strtolower(trim((string)($body['id'] ?? '')));
     if ($id === '' || !isset($store['users'][$id])) { http_response_code(404); echo json_encode(['ok' => false]); break; }
     if ($id === 'default') { http_response_code(400); echo json_encode(['ok' => false, 'error' => 'Нельзя удалить default']); break; }
+    $viewerSlug = $store['users'][$id]['viewerSlug'] ?? '';
+    $adminSlug = $store['users'][$id]['adminSlug'] ?? '';
     unset($store['users'][$id]);
+    saveUsers($USERS_FILE, $store);
+    if ($viewerSlug !== '') unset($generated[$viewerSlug]);
+    if ($adminSlug !== '') unset($generated[$adminSlug]);
+    saveGenerated($GENERATED_FILE, $generated);
+    echo json_encode(['ok' => true]);
+    break;
+  }
+  case 'master_apply_defaults': {
+    requireMaster();
+    foreach ($store['users'] as $id => $u) {
+      if ($id === 'default') continue;
+      $store['users'][$id]['items'] = $DEFAULT_ITEMS;
+    }
     saveUsers($USERS_FILE, $store);
     echo json_encode(['ok' => true]);
     break;

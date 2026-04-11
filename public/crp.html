@@ -240,6 +240,9 @@
           <input id="searchInput" placeholder="Поиск по slug" />
           <button id="refreshBtn" class="btn-primary">Обновить</button>
         </div>
+        <div class="toolbar">
+          <button id="applyDefaultsBtn">Применить обновления</button>
+        </div>
         <div id="users"></div>
       </div>
 
@@ -282,6 +285,7 @@
     const usersEl = document.getElementById('users');
     const searchInput = document.getElementById('searchInput');
     const refreshBtn = document.getElementById('refreshBtn');
+    const applyDefaultsBtn = document.getElementById('applyDefaultsBtn');
     const statusEl = document.getElementById('status');
     const toastEl = document.getElementById('toast');
 
@@ -488,6 +492,22 @@
     tabCreate.addEventListener('click', switchToCreate);
     tabUsers.addEventListener('click', switchToUsers);
     refreshBtn.addEventListener('click', loadUsers);
+    applyDefaultsBtn.addEventListener('click', async () => {
+      const ok = confirm('Применить новые настройки предметов ко всем пользователям?');
+      if (!ok) return;
+      try {
+        const res = await fetch('/api.php?action=master_apply_defaults', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          showToast('Ошибка применения');
+          return;
+        }
+        showToast('Обновления применены');
+        await loadUsers();
+      } catch (err) {
+        showToast('Ошибка применения');
+      }
+    });
     searchInput.addEventListener('input', applySearch);
 
     // Пробуем авто-вход по cookie
