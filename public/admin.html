@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Импульс — Админ</title>
+  <link rel="apple-touch-icon" href="/favicon.png" />
+  <link rel="icon" href="/favicon.png" />
   <style>
     @font-face {
       font-family: 'Open Sans Local';
@@ -277,14 +279,14 @@
       width: 100%;
       padding: 12px 14px;
       border-radius: 14px;
-      border: 2px dashed var(--line);
-      background: transparent;
-      color: var(--muted);
+      border: 2px solid var(--line);
+      background: #000000;
+      color: var(--text);
       font-size: 16px;
       letter-spacing: 1px;
       cursor: pointer;
     }
-    .add-btn:hover { border-color: #ffffff; color: var(--text); }
+    .add-btn:hover { border-color: #ffffff; }
 
     .items-list {
       margin-top: 10px;
@@ -397,6 +399,7 @@
 
     let currentItems = [...DEFAULT_ITEMS];
     const activationKey = `impulse-activation-${getAdminSlug()}`;
+    let lastSendError = 'Ошибка сети, попробуйте ещё раз';
 
     function getAdminSlug() {
       const params = new URLSearchParams(window.location.search);
@@ -465,9 +468,10 @@
     async function fetchServerItems() {
       try {
         const res = await fetch(`/api.php?action=admin_get_items&adminSlug=${encodeURIComponent(adminSlug)}`, { cache: 'no-store' });
+        if (res.status === 404) return { notFound: true };
         if (!res.ok) throw new Error('Ошибка сервера');
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length >= 1) return data.items;
+        if (Array.isArray(data.items) && data.items.length >= 1) return { items: data.items };
       } catch (err) {
       }
       return null;
@@ -629,7 +633,7 @@
       showNotice('Отправляю...');
       const ok = await sendWithRetry(count);
       if (ok) showNotice(`Отправлено: ${count}`);
-      else showNotice('Ошибка сети, попробуйте ещё раз');
+      else showNotice(lastSendError || 'Ошибка сети, попробуйте ещё раз');
     }
 
     async function sendWithRetry(count) {
@@ -650,8 +654,19 @@
           keepalive: true,
           signal: controller.signal
         });
-        return res.ok;
+        if (res.status === 404) {
+          lastSendError = 'Ссылка не активна. Проверьте, что она создана в мастер-админке.';
+          return false;
+        }
+        let data = null;
+        try { data = await res.json(); } catch (err) {}
+        if (!res.ok) {
+          lastSendError = (data && data.error) ? data.error : 'Ошибка сервера';
+          return false;
+        }
+        return true;
       } catch (err) {
+        lastSendError = 'Ошибка сети, попробуйте ещё раз';
         return false;
       } finally {
         clearTimeout(id);
@@ -880,9 +895,17 @@
       const local = loadLocalItems();
       const server = await fetchServerItems();
 
+      if (server && server.notFound) {
+        padEl.textContent = 'Ссылка не активна. Проверьте, что она создана в мастер-админке.';
+        showNotice('Неверная ссылка');
+        settingsBtn.style.display = 'none';
+        resetBtn.style.display = 'none';
+        return;
+      }
+
       let items = DEFAULT_ITEMS;
-      if (server) {
-        items = server;
+      if (server && server.items) {
+        items = server.items;
         saveLocalItems(items);
       } else if (local) {
         items = local;
